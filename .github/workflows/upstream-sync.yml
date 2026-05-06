@@ -43,17 +43,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            manifest.json
-            package.json
-            providers.json
-            providers/4khdhub.js
-            providers/4khdhub_tv.js
-            providers/hdhub4u.js
-            providers/hindmoviez.js
-            providers/movieblast.js
-            providers/moviebox.js
-            providers/moviesdrive.js
-            providers/streamflix.js
-          git commit -m "chore: sync upstream Doom-addon scrapers"
-          git push
+          git add manifest.json package.json providers.json providers/4khdhub.js providers/4khdhub_tv.js providers/hdhub4u.js providers/hindmoviez.js providers/movieblast.js providers/moviebox.js providers/moviesdrive.js providers/streamflix.js
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: sync upstream Doom-addon scrapers"
+            git push
+          fi

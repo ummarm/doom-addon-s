@@ -1,7 +1,7 @@
 {
   "name": "add-on",
   "private": true,
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Doom-addon: a Stremio stream add-on with 4KHDHub, 4khdhub-tv, HDHub4u, HindMoviez, MovieBlast, MovieBox, MoviesDrive, Streamflix.",
   "license": "GPL-3.0",
   "engines": {

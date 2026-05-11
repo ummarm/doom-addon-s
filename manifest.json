@@ -1,6 +1,6 @@
 {
   "id": "community.doomplug",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "name": "Doom-addon",
   "description": "A Stremio stream add-on wrapping the Doom-addon provider set: 4KHDHub, 4khdhub-tv, 4KHDHub Yoruix, HDHub4u, HDHub4u Murph, HindMoviez, MovieBlast, 4KHDHub Murph, MovieBox, MoviesDrive, Streamflix.",
   "resources": [

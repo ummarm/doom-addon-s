@@ -78,23 +78,23 @@ The stream endpoint shape is:
 - `4KHDHub`, `4khdhub-tv`, and `HDHub4u` prefer FSL-family links first, but fall
   back to the original available links if no FSL link exists.
 
-## Doom-plug monitoring
+## Doom-plug sync
 
 This repo includes a GitHub Actions workflow at
 `.github/workflows/upstream-sync.yml`.
 
-- It checks `ummarm/Doom-plug` every day.
-- Real sync work only happens every 2 days, anchored from `2026-04-20`.
-- If Doom-plug's provider manifest or provider files change, the workflow updates
-  Doom-addon's provider files, retargets domain lookups to this repo's
-  `domains.json`, updates `providers.json`, `manifest.json`, and `package.json`, and
-  commits the update directly to `main`.
-- You can also run it manually from the GitHub Actions tab with `force=true`.
+- Automatic Doom-plug syncing is disabled.
+- Doom-addon will not update from Doom-plug unless you intentionally run the
+  workflow from the GitHub Actions tab or ask for a manual sync.
+- When run manually, the workflow updates Doom-addon's provider files, retargets
+  domain lookups to this repo's `domains.json`, updates `providers.json`,
+  `manifest.json`, and `package.json`, and commits the update directly to `main`.
 
 ## Windows auto-update
 
 On the Windows host, schedule `scripts/update-windows.ps1` to keep the running
-Docker container current with GitHub:
+Docker container current with GitHub. This only pulls committed Doom-addon
+changes; it does not sync from Doom-plug by itself.
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File C:\server\Doom-addon\scripts\update-windows.ps1

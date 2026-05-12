@@ -1,14 +1,14 @@
 name: Doom-plug provider sync
 
 on:
-  schedule:
-    - cron: "17 2 * * *"
+  # Automatic Doom-plug syncing is disabled. Run this workflow manually only
+  # when you intentionally want Doom-addon updated from Doom-plug.
   workflow_dispatch:
     inputs:
       force:
         description: "Run now even if today is outside the 2-day cadence"
         required: false
-        default: false
+        default: true
         type: boolean
 
 permissions:

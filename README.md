@@ -8,6 +8,8 @@ upstream sources directly:
 - `4khdhub-tv`
 - `4KHDHub Yoruix`
 - `HDHub4u Murph`
+- `Flix-Streams Emby`
+- `Flix-Streams VegaMovies`
 - `HindMoviez`
 - `MovieBlast`
 - `4KHDHub Murph`
@@ -29,6 +31,8 @@ every enabled provider, merges the results, and returns Stremio stream objects.
 - `providers/4khdhub_yoruix.js`
 - `providers/hdhub4u.js`
 - `providers/hdhub4u_murph.js`
+- `providers/flix_streams_emby.js`
+- `providers/flix_streams_vegamovies.js`
 - `providers/hindmoviez.js`
 - `providers/movieblast.js`
 - `providers/4khdhub_murph.js`
@@ -53,6 +57,13 @@ You can change the port with:
 
 ```sh
 PORT=8080 npm start
+```
+
+Flix-Streams wrappers use the configured Flix-Streams manifest URL. The checked-in
+default can be overridden if the token changes:
+
+```sh
+FLIX_STREAMS_MANIFEST_URL=https://flixnest.app/flix-streams/u/<token>/manifest.json npm start
 ```
 
 ## Deploy
@@ -83,6 +94,8 @@ The stream endpoint shape is:
   `domains.json`.
 - `HindMoviez` returns resolved direct URLs instead of relying on the upstream
   Cloudflare worker.
+- `Flix-Streams Emby` and `Flix-Streams VegaMovies` wrap the configured
+  Flix-Streams add-on URL and do not sync from the GitHub upstream providers.
 - Provider results keep Doom-addon's working-and-seekable stream validation
   before results are returned to Stremio.
 
@@ -117,6 +130,8 @@ Tracked upstream provider files:
 - `providers/4khdhub_yoruix.js`
 - `providers/hdhub4u.js`
 - `providers/hdhub4u_murph.js`
+- `providers/flix_streams_emby.js`
+- `providers/flix_streams_vegamovies.js`
 - `providers/hindmoviez.js`
 - `providers/movieblast.js`
 - `providers/4khdhub_murph.js`

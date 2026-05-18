@@ -1,7 +1,7 @@
 "use strict";
 
 const PROVIDER_NAME = "Flix-Streams Emby";
-const DEFAULT_MANIFEST_URL = "https://flixnest.app/flix-streams/eyJjIjoxMDAwMCwiZSI6Im9tbmk3MzczQGdtYWlsLmNvbSIsInAiOiJtb250aGx5X3VubGltaXRlZCIsInUiOjEsInYiOjIsIngiOjE3ODE3OTAwNjR9.KUSrPstwsRFmcVaQ13hjLg5RWXuU81rqKd_BgRTsvhM/manifest.json";
+const DEFAULT_MANIFEST_URL = "https://flixnest.app/flix-streams/eyJjIjo1LCJlIjoidW1tYXJtYXNyb29yQGdtYWlsLmNvbSIsInAiOiJsaWZldGltZV81IiwidiI6Mn0.6BPJR4tzNqFKIn9hsxPn0X9GE97UxgJxs4j3f5kAg8k/manifest.json";
 
 function configuredBaseUrl() {
   const raw = process.env.FLIX_STREAMS_MANIFEST_URL || process.env.FLIX_STREAMS_BASE_URL || DEFAULT_MANIFEST_URL;

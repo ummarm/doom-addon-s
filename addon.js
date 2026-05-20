@@ -10,7 +10,7 @@ const STREAM_PROBE_TIMEOUT_MS = Number(process.env.STREAM_PROBE_TIMEOUT_MS || 80
 const STREAM_PROBE_CONCURRENCY = Number(process.env.STREAM_PROBE_CONCURRENCY || 6);
 const STREAM_CACHE_TTL_MS = Number(process.env.STREAM_CACHE_TTL_MS || 10 * 60 * 1000);
 const STREAM_CACHE_MAX_ENTRIES = Number(process.env.STREAM_CACHE_MAX_ENTRIES || 100);
-const STREAM_FAST_PROVIDER_WAIT_MS = Number(process.env.STREAM_FAST_PROVIDER_WAIT_MS || 12000);
+const STREAM_FAST_PROVIDER_WAIT_MS = Number(process.env.STREAM_FAST_PROVIDER_WAIT_MS || 25000);
 const STREAM_FAST_PROBE_TIMEOUT_MS = Number(process.env.STREAM_FAST_PROBE_TIMEOUT_MS || 2500);
 
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "manifest.json"), "utf8"));
@@ -395,20 +395,20 @@ const UMBRELLA_PROVIDER_CODES = {
 };
 const KNOWN_AUDIO_LABELS = ["Hindi", "Tamil", "Telugu", "English", "Malayalam", "Kannada", "Punjabi"];
 const SOURCE_DETAIL_NAMES = {
-  "4khdhub": "D3adlyRocket",
-  "4khdhubtv": "D3adlyRocket",
-  "4khdhub_yoruix": "Yoruix",
+  "4khdhub": "Darth Vader",
+  "4khdhubtv": "Darth Vader",
+  "4khdhub_yoruix": "Darth Vader",
   "4khdhub_murph": "Murph Streams",
-  "hdhub4u": "D3adlyRocket",
+  "hdhub4u": "Darth Vader",
   "hdhub4u_murph": "Murph Streams",
-  "hdhub4u_yoruix": "Yoruix",
-  "flix_streams_emby": "Flix-Streams Emby",
-  "flix_streams_vegamovies": "Flix-Streams VegaMovies",
-  "hindmoviez": "HindMoviez",
-  "movieblast": "MovieBlast",
-  "moviebox": "MovieBox",
-  "moviesdrive": "MoviesDrive",
-  "streamflix": "Streamflix"
+  "hdhub4u_yoruix": "Darth Vader",
+  "flix_streams_emby": "Darth Vader",
+  "flix_streams_vegamovies": "Darth Vader",
+  "hindmoviez": "Darth Vader",
+  "movieblast": "Darth Vader",
+  "moviebox": "Darth Vader",
+  "moviesdrive": "Darth Vader",
+  "streamflix": "Darth Vader"
 };
 
 function parseSizeToBytes(value) {
@@ -608,7 +608,7 @@ function streamAudioDetail(rawStream) {
 }
 
 function providerDetailName(provider) {
-  return SOURCE_DETAIL_NAMES[provider.id] || provider.name;
+  return SOURCE_DETAIL_NAMES[provider.id] || (/murph/i.test(provider.name || provider.id || "") ? "Murph Streams" : "Darth Vader");
 }
 
 function streamDetailDescription(rawStream, provider) {

@@ -15,7 +15,6 @@ upstream sources directly:
 - `4KHDHub Murph`
 - `MovieBox`
 - `MoviesDrive`
-- `StreamFlix`
 
 It exposes a Stremio-compatible `manifest.json` and a stream endpoint that calls
 every enabled provider, merges the results, and returns Stremio stream objects.
@@ -111,6 +110,8 @@ The stream endpoint shape is:
   Cloudflare worker.
 - `Flix-Streams Emby` and `Flix-Streams VegaMovies` wrap the configured
   Flix-Streams add-on URL and do not sync from the GitHub upstream providers.
+- `StreamFlix` is kept in the repo but currently disabled and paused from
+  upstream sync.
 - Provider results keep Doom-addon's working-and-seekable stream validation
   before results are returned to Stremio.
 
@@ -152,4 +153,3 @@ Tracked upstream provider files:
 - `providers/4khdhub_murph.js`
 - `providers/moviebox.js`
 - `providers/moviesdrive.js`
-- `providers/streamflix.js`

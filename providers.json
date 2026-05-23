@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon",
-  "version": "1.0.37",
+  "version": "1.0.38",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -306,7 +306,7 @@
         "tv"
       ],
       "filename": "providers/streamflix.js",
-      "enabled": true,
+      "enabled": false,
       "formats": [
         "mp4",
         "m3u8"

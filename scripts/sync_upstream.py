@@ -333,6 +333,7 @@ PROVIDERS = (
     Provider("streamflix", ("providers/streamflix.js",), "providers/streamflix.js", ("streamflix",)),
 )
 MURPH_WRAPPER_IDS = {"4khdhub_murph", "hdhub4u_murph"}
+PAUSED_UPSTREAM_PROVIDER_IDS = {"streamflix"}
 
 
 def write_output(name: str, value: str) -> None:
@@ -547,7 +548,7 @@ def write_json_if_changed(path: Path, payload: dict) -> bool:
 
 
 def provider_names(registry: dict) -> list[str]:
-    return [scraper["name"] for scraper in registry.get("scrapers", [])]
+    return [scraper["name"] for scraper in registry.get("scrapers", []) if scraper.get("enabled", True)]
 
 
 def addon_description(names: list[str]) -> str:
@@ -636,6 +637,10 @@ def main() -> int:
     upstream_tree_cache: dict[str, list[str]] = {}
 
     for provider in PROVIDERS:
+        if provider.scraper_id in PAUSED_UPSTREAM_PROVIDER_IDS:
+            print(f"Info: `{provider.scraper_id}` upstream sync is paused.")
+            continue
+
         try:
             upstream_tree_paths = upstream_tree_cache.get(provider.upstream_tree_api)
             if upstream_tree_paths is None:

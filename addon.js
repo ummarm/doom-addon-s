@@ -121,6 +121,33 @@ async function resolveTmdbId(imdbId, mediaType) {
   return match ? String(match.id) : null;
 }
 
+async function resolveMediaInfo(tmdbId, mediaType) {
+  const endpoint = mediaType === "tv" ? "tv" : "movie";
+  const url = new URL(`https://api.themoviedb.org/3/${endpoint}/${encodeURIComponent(tmdbId)}`);
+  url.searchParams.set("api_key", TMDB_API_KEY);
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Doom-addon Stremio Addon"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`TMDB detail lookup failed with ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const title = mediaType === "tv" ? payload.name : payload.title;
+  const originalTitle = mediaType === "tv" ? payload.original_name : payload.original_title;
+  const date = mediaType === "tv" ? payload.first_air_date : payload.release_date;
+  return {
+    title: title || originalTitle || "",
+    originalTitle: originalTitle || title || "",
+    year: date ? String(date).slice(0, 4) : ""
+  };
+}
+
 function qualityRank(value) {
   const text = String(value || "").toLowerCase();
   if (text.includes("2160") || text.includes("4k")) return 5;
@@ -480,6 +507,117 @@ function cleanDetailText(value) {
     .replace(/^[^\p{L}\p{N}]+/u, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeMatchText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const MATCH_STOP_WORDS = new Set([
+  "a", "an", "and", "are", "as", "at", "by", "for", "from", "in", "into", "is", "it", "of", "on", "or", "part", "the", "to", "with"
+]);
+
+const STREAM_DETAIL_IGNORE_WORDS = new Set([
+  "aac", "ac3", "amzn", "atmos", "audio", "avc", "bluray", "brrip", "cam", "ddp", "dd", "download", "darth", "dts",
+  "dual", "dv", "dvd", "dvdrip", "eac3", "english", "esub", "file", "gb", "h264", "h265", "hd", "hdr", "hdrip",
+  "hevc", "hindi", "hubcloud", "kbps", "mb", "multi", "remux", "rip", "server", "stream", "truehd", "vader",
+  "web", "webdl", "webrip", "x264", "x265"
+]);
+
+function titleTokens(value) {
+  return normalizeMatchText(value)
+    .split(" ")
+    .filter((token) => token.length > 2 && !MATCH_STOP_WORDS.has(token));
+}
+
+function streamEvidenceTokens(value) {
+  return normalizeMatchText(value)
+    .split(" ")
+    .filter((token) => {
+      if (token.length <= 2 || MATCH_STOP_WORDS.has(token) || STREAM_DETAIL_IGNORE_WORDS.has(token)) return false;
+      if (/^\d+$/.test(token)) return false;
+      if (/^(?:2160p?|1080p?|720p?|480p?|360p?|10bit|8bit)$/.test(token)) return false;
+      return true;
+    });
+}
+
+function streamMediaEvidence(stream) {
+  return [
+    stream.behaviorHints && stream.behaviorHints.filename,
+    stream.title,
+    stream.description
+  ].filter(Boolean).join(" ");
+}
+
+function hasExpectedEpisode(text, parsed) {
+  if (!parsed || parsed.type !== "series") {
+    return true;
+  }
+
+  const normalized = normalizeMatchText(text);
+  const season = String(parsed.season);
+  const episode = String(parsed.episode);
+  const paddedSeason = season.padStart(2, "0");
+  const paddedEpisode = episode.padStart(2, "0");
+  const expectedPatterns = [
+    `s${paddedSeason} e${paddedEpisode}`,
+    `s${season} e${episode}`,
+    `season ${season} episode ${episode}`,
+    `season ${paddedSeason} episode ${paddedEpisode}`
+  ];
+  if (expectedPatterns.some((pattern) => normalized.includes(pattern))) {
+    return true;
+  }
+
+  const seasonEpisodeMatch = normalized.match(/\bs\s*0?(\d+)\s*e\s*0?(\d+)\b/);
+  if (seasonEpisodeMatch) {
+    return Number(seasonEpisodeMatch[1]) === parsed.season && Number(seasonEpisodeMatch[2]) === parsed.episode;
+  }
+
+  return true;
+}
+
+function matchesRequestedMedia(stream, mediaInfo, parsed) {
+  if (!mediaInfo || !mediaInfo.title) {
+    return true;
+  }
+
+  const evidence = streamMediaEvidence(stream);
+  if (!evidence) {
+    return true;
+  }
+  if (!hasExpectedEpisode(evidence, parsed)) {
+    return false;
+  }
+
+  const expectedTokens = Array.from(new Set([
+    ...titleTokens(mediaInfo.title),
+    ...titleTokens(mediaInfo.originalTitle)
+  ]));
+  if (expectedTokens.length === 0) {
+    return true;
+  }
+
+  const normalizedEvidence = normalizeMatchText(evidence);
+  const evidenceTokens = streamEvidenceTokens(evidence);
+  const matchedTokens = expectedTokens.filter((token) => normalizedEvidence.includes(token));
+
+  if (matchedTokens.length > 0) {
+    return true;
+  }
+
+  if (mediaInfo.year && normalizedEvidence.includes(mediaInfo.year)) {
+    return true;
+  }
+
+  return evidenceTokens.length < 2;
 }
 
 function rawStreamText(rawStream) {
@@ -888,6 +1026,16 @@ function streamsFromProviderResults(providerResults, options = {}) {
   });
 }
 
+function filterRequestedMediaStreams(streams, mediaInfo, parsed) {
+  return streams.filter((stream) => {
+    if (matchesRequestedMedia(stream, mediaInfo, parsed)) {
+      return true;
+    }
+    console.log(`[Media match] Rejected wrong-title stream: ${stream.name}`);
+    return false;
+  });
+}
+
 function sortStreams(streams) {
   return streams.sort((a, b) => {
     const sizeA = streamSizeBytes(a);
@@ -906,7 +1054,8 @@ function sortStreams(streams) {
 
 async function finalizeStreams(providerResults, options = {}) {
   const streams = streamsFromProviderResults(providerResults, { logFailures: options.logFailures });
-  const playableStreams = await filterPlayableStreams(dedupeStreams(streams), {
+  const mediaMatchedStreams = filterRequestedMediaStreams(streams, options.mediaInfo, options.parsed);
+  const playableStreams = await filterPlayableStreams(dedupeStreams(mediaMatchedStreams), {
     probeOnlyRequired: options.probeOnlyRequired,
     probeTimeoutMs: options.probeTimeoutMs
   });
@@ -920,17 +1069,19 @@ async function startStreamBuild(type, id) {
   }
 
   let tmdbId;
+  let mediaInfo = null;
   try {
     tmdbId = await resolveTmdbId(parsed.imdbId, parsed.mediaType);
     if (!tmdbId) {
       return null;
     }
+    mediaInfo = await resolveMediaInfo(tmdbId, parsed.mediaType);
   } catch (error) {
     console.error(`[TMDB] ${error.message || error}`);
     return null;
   }
 
-  return startProviderCollection(parsed, tmdbId);
+  return Object.assign(startProviderCollection(parsed, tmdbId), { parsed, mediaInfo });
 }
 
 async function getStreams(type, id) {
@@ -954,7 +1105,7 @@ async function getStreams(type, id) {
         return [];
       }
       await state.donePromise;
-      return finalizeStreams(state.results, { logFailures: true });
+      return finalizeStreams(state.results, { logFailures: true, mediaInfo: state.mediaInfo, parsed: state.parsed });
     })
     .then((streams) => {
       rememberStreams(key, streams);
@@ -982,6 +1133,8 @@ async function getStreams(type, id) {
       const providerResults = state.results.filter(Boolean);
       const streams = await finalizeStreams(providerResults, {
         logFailures: false,
+        mediaInfo: state.mediaInfo,
+        parsed: state.parsed,
         probeOnlyRequired: true,
         probeTimeoutMs: STREAM_FAST_PROBE_TIMEOUT_MS
       });

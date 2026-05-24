@@ -24,6 +24,49 @@ const providerEntries = providerRegistry.scrapers
     modulePath: path.join(ROOT, provider.filename),
     getStreams: null
   }));
+const addonGroups = {
+  murph: {
+    name: "Umbrella M",
+    providerIds: ["4khdhub_murph", "hdhub4u_murph"]
+  },
+  yoruix: {
+    name: "Umbrella Y",
+    providerIds: ["4khdhub_yoruix", "hdhub4u_yoruix"]
+  },
+  d3adlyrocket: {
+    name: "Umbrella D",
+    providerIds: [
+      "4khdhub",
+      "4khdhubtv",
+      "hdhub4u",
+      "hindmoviez",
+      "movieblast",
+      "moviebox",
+      "moviesdrive",
+      "streamflix"
+    ]
+  },
+  flixnest: {
+    name: "Umbrella F",
+    providerIds: ["flix_streams_emby", "flix_streams_mkvcinemas", "flix_streams_vegamovies"]
+  }
+};
+const addonGroupEntries = Object.fromEntries(
+  Object.entries(addonGroups).map(([slug, group]) => [
+    slug,
+    providerEntries.filter((provider) => group.providerIds.includes(provider.id))
+  ])
+);
+const addonManifests = Object.fromEntries(
+  Object.entries(addonGroups).map(([slug, group]) => [
+    slug,
+    Object.assign({}, manifest, {
+      id: `${manifest.id}.${slug}`,
+      name: group.name,
+      description: `${group.name} provider group for Doom-addon. Uses the same Umbrella formatting, filtering, sorting, and playable checks as the main add-on.`
+    })
+  ])
+);
 const streamCache = new Map();
 const streamInflight = new Map();
 
@@ -39,8 +82,8 @@ function loadProvider(provider) {
   return provider.getStreams;
 }
 
-function streamCacheKey(type, id) {
-  return `${type}:${id}`;
+function streamCacheKey(type, id, scope = "main") {
+  return `${scope}:${type}:${id}`;
 }
 
 function cachedStreams(key) {
@@ -1018,9 +1061,9 @@ async function collectProviderStreams(provider, parsed, tmdbId, mediaInfo) {
     .filter(Boolean);
 }
 
-function startProviderCollection(parsed, tmdbId, mediaInfo) {
+function startProviderCollection(parsed, tmdbId, mediaInfo, entries) {
   const results = [];
-  const tasks = providerEntries.map((provider, index) => (
+  const tasks = entries.map((provider, index) => (
     collectProviderStreams(provider, parsed, tmdbId, mediaInfo)
       .then((value) => {
         results[index] = { status: "fulfilled", value };
@@ -1036,6 +1079,7 @@ function startProviderCollection(parsed, tmdbId, mediaInfo) {
 
 function streamsFromProviderResults(providerResults, options = {}) {
   const logFailures = options.logFailures !== false;
+  const entries = options.providerEntries || providerEntries;
   return providerResults.flatMap((result, index) => {
     if (!result) {
       return [];
@@ -1044,7 +1088,7 @@ function streamsFromProviderResults(providerResults, options = {}) {
       return result.value;
     }
     if (logFailures) {
-      const provider = providerEntries[index] || { name: "Provider" };
+      const provider = entries[index] || { name: "Provider" };
       console.error(`[${provider.name}] ${result.reason.message || result.reason}`);
     }
     return [];
@@ -1078,7 +1122,10 @@ function sortStreams(streams) {
 }
 
 async function finalizeStreams(providerResults, options = {}) {
-  const streams = streamsFromProviderResults(providerResults, { logFailures: options.logFailures });
+  const streams = streamsFromProviderResults(providerResults, {
+    logFailures: options.logFailures,
+    providerEntries: options.providerEntries
+  });
   const mediaMatchedStreams = filterRequestedMediaStreams(streams, options.mediaInfo, options.parsed);
   const playableStreams = await filterPlayableStreams(dedupeStreams(mediaMatchedStreams), {
     probeOnlyRequired: options.probeOnlyRequired,
@@ -1087,7 +1134,7 @@ async function finalizeStreams(providerResults, options = {}) {
   return sortStreams(playableStreams);
 }
 
-async function startStreamBuild(type, id) {
+async function startStreamBuild(type, id, entries) {
   const parsed = parseStremioId(type, id);
   if (!parsed) {
     return null;
@@ -1106,11 +1153,24 @@ async function startStreamBuild(type, id) {
     return null;
   }
 
-  return Object.assign(startProviderCollection(parsed, tmdbId, mediaInfo), { parsed, mediaInfo });
+  return Object.assign(startProviderCollection(parsed, tmdbId, mediaInfo, entries), { parsed, mediaInfo });
 }
 
-async function getStreams(type, id) {
-  const key = streamCacheKey(type, id);
+function providerEntriesForScope(scope) {
+  if (!scope || scope === "main") {
+    return providerEntries;
+  }
+  return addonGroupEntries[scope] || null;
+}
+
+async function getStreams(type, id, options = {}) {
+  const scope = options.scope || "main";
+  const entries = providerEntriesForScope(scope);
+  if (!entries) {
+    return null;
+  }
+
+  const key = streamCacheKey(type, id, scope);
   const cached = cachedStreams(key);
   if (cached) {
     console.log(`[Stream cache] Hit for ${key} (${cached.length} streams)`);
@@ -1123,14 +1183,19 @@ async function getStreams(type, id) {
     return inFlight.fastPromise;
   }
 
-  const buildStatePromise = startStreamBuild(type, id);
+  const buildStatePromise = startStreamBuild(type, id, entries);
   const fullPromise = buildStatePromise
     .then(async (state) => {
       if (!state) {
         return [];
       }
       await state.donePromise;
-      return finalizeStreams(state.results, { logFailures: true, mediaInfo: state.mediaInfo, parsed: state.parsed });
+      return finalizeStreams(state.results, {
+        logFailures: true,
+        mediaInfo: state.mediaInfo,
+        parsed: state.parsed,
+        providerEntries: entries
+      });
     })
     .then((streams) => {
       rememberStreams(key, streams);
@@ -1160,6 +1225,7 @@ async function getStreams(type, id) {
         logFailures: false,
         mediaInfo: state.mediaInfo,
         parsed: state.parsed,
+        providerEntries: entries,
         probeOnlyRequired: true,
         probeTimeoutMs: STREAM_FAST_PROBE_TIMEOUT_MS
       });
@@ -1182,6 +1248,8 @@ async function getStreams(type, id) {
 
 module.exports = {
   manifest,
+  addonManifests,
+  addonGroups,
   getStreams,
   parseStremioId,
   resolveTmdbId,

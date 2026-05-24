@@ -3,7 +3,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const { manifest, getStreams } = require("./addon");
+const { manifest, addonManifests, getStreams } = require("./addon");
 
 const PORT = Number(process.env.PORT || 7000);
 const HOST = process.env.HOST || "0.0.0.0";
@@ -42,15 +42,21 @@ function sendFile(response, statusCode, filePath, contentType, cacheSeconds = 0)
 }
 
 function parseStreamPath(pathname) {
-  const match = pathname.match(/^\/stream\/([^/]+)\/(.+)\.json$/);
+  const match = pathname.match(/^\/(?:addons\/([^/]+)\/)?stream\/([^/]+)\/(.+)\.json$/);
   if (!match) {
     return null;
   }
 
   return {
-    type: decodeURIComponent(match[1]),
-    id: decodeURIComponent(match[2])
+    scope: match[1] ? decodeURIComponent(match[1]) : "main",
+    type: decodeURIComponent(match[2]),
+    id: decodeURIComponent(match[3])
   };
+}
+
+function parseAddonManifestPath(pathname) {
+  const match = pathname.match(/^\/addons\/([^/]+)\/manifest\.json$/);
+  return match ? decodeURIComponent(match[1]) : null;
 }
 
 const server = http.createServer(async (request, response) => {
@@ -76,7 +82,15 @@ const server = http.createServer(async (request, response) => {
       sendText(
         response,
         200,
-        `Doom-addon Stremio add-on is running.\nInstall URL: ${url.origin}/manifest.json\n`
+        [
+          "Doom-addon Stremio add-on is running.",
+          `Install URL: ${url.origin}/manifest.json`,
+          `Umbrella M: ${url.origin}/addons/murph/manifest.json`,
+          `Umbrella Y: ${url.origin}/addons/yoruix/manifest.json`,
+          `Umbrella D: ${url.origin}/addons/d3adlyrocket/manifest.json`,
+          `Umbrella F: ${url.origin}/addons/flixnest/manifest.json`,
+          ""
+        ].join("\n")
       );
       return;
     }
@@ -91,9 +105,24 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    const addonManifestScope = parseAddonManifestPath(url.pathname);
+    if (addonManifestScope) {
+      const scopedManifest = addonManifests[addonManifestScope];
+      if (!scopedManifest) {
+        sendJson(response, 404, { error: "Add-on group not found" });
+        return;
+      }
+      sendJson(response, 200, scopedManifest, 3600);
+      return;
+    }
+
     const streamRequest = parseStreamPath(url.pathname);
     if (streamRequest) {
-      const streams = await getStreams(streamRequest.type, streamRequest.id);
+      const streams = await getStreams(streamRequest.type, streamRequest.id, { scope: streamRequest.scope });
+      if (!streams) {
+        sendJson(response, 404, { error: "Add-on group not found" });
+        return;
+      }
       sendJson(response, 200, { streams }, 300);
       return;
     }

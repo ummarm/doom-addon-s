@@ -53,6 +53,15 @@ The default local install URL is:
 http://localhost:7000/manifest.json
 ```
 
+Provider-group install URLs are also exposed without changing the main add-on:
+
+```text
+http://localhost:7000/addons/murph/manifest.json        # Umbrella M
+http://localhost:7000/addons/yoruix/manifest.json       # Umbrella Y
+http://localhost:7000/addons/d3adlyrocket/manifest.json # Umbrella D
+http://localhost:7000/addons/flixnest/manifest.json     # Umbrella F
+```
+
 You can change the port with:
 
 ```sh
@@ -95,6 +104,10 @@ The stream endpoint shape is:
 ```text
 /stream/movie/tt0111161.json
 /stream/series/tt0944947:1:1.json
+/addons/murph/stream/movie/tt0111161.json
+/addons/yoruix/stream/movie/tt0111161.json
+/addons/d3adlyrocket/stream/movie/tt0111161.json
+/addons/flixnest/stream/movie/tt0111161.json
 ```
 
 ## Notes
@@ -117,6 +130,10 @@ The stream endpoint shape is:
   upstream sync.
 - Provider results keep Doom-addon's working-and-seekable stream validation
   before results are returned to Stremio.
+- `Umbrella M`, `Umbrella Y`, `Umbrella D`, and `Umbrella F` are separate
+  installable provider-group manifests that reuse the same formatter, media
+  matching, probing, sorting, cache, and upstream-synced provider files as the
+  main add-on.
 
 ## Original upstream sync
 

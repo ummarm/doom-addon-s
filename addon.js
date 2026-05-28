@@ -858,13 +858,13 @@ function streamDetailDescription(rawStream, provider) {
   const audioDetail = streamAudioDetail(rawStream);
   const size = formatBytes(streamSizeBytes(rawStream)) || cleanDetailText(rawStream.size);
 
-  if (filename) lines.push(`📽️ ${filename}`);
+  if (filename) lines.push(filename);
   if (releaseType) lines.push(`📀 ${releaseType}`);
   if (videoDetail) lines.push(`🎬 ${videoDetail}`);
   if (audioDetail) lines.push(`🔊 ${audioDetail}`);
-  if (size) lines.push(`💾 ${size}`);
   const sourceCode = detailProviderCode(provider);
   lines.push(`⚡ ${[providerDetailName(provider), sourceCode].filter(Boolean).join(" - ")}`);
+  if (size) lines.push(`💾 ${size}`);
 
   return lines.join("\n");
 }

@@ -144,6 +144,11 @@ Peachify streams are language-filtered to Hindi/English and must pass the main
 playback probe before they are returned, so expired proxy/error responses are
 removed before Stremio receives them.
 
+NetMirror streams are matched from the requested Stremio IMDb ID through the
+addon's TMDB lookup, then enriched with that requested title/year before the
+wrong-title filter runs. This keeps NetMirror's minimal `Auto` stream labels
+from being rejected when the source itself does not include a filename.
+
 ## Deploy
 
 This add-on is dynamic, so the raw GitHub URL is no longer enough for Stremio.

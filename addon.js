@@ -1346,6 +1346,7 @@ function enrichTrustedProviderStream(rawStream, provider, mediaInfo) {
   const trustedTitleProviders = new Set([
     "moviebox",
     "movies4u_murph",
+    "netmirror",
     "flix_streams_lotusvault",
     "flix_streams_archivevault",
     "flix_streams_uhdmovies"

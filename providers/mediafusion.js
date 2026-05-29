@@ -43,24 +43,23 @@ async function fetchMediaFusionStreams(stremioId, mediaType, season, episode) {
 }
 
 async function getStreams(tmdbId, mediaType = "movie", season = null, episode = null, imdbId = "") {
-  try {
-    const ids = [
-      imdbId,
-      tmdbId ? `tmdb:${tmdbId}` : ""
-    ].filter(Boolean);
+  const ids = [
+    imdbId,
+    tmdbId ? `tmdb:${tmdbId}` : ""
+  ].filter(Boolean);
 
-    for (const id of ids) {
+  for (const id of ids) {
+    try {
       const streams = await fetchMediaFusionStreams(id, mediaType, season, episode);
       if (streams.length > 0) {
         return streams.filter((stream) => stream && stream.url);
       }
+    } catch (error) {
+      console.error(`[${PROVIDER_NAME}] ${id}: ${error.message || error}`);
     }
-
-    return [];
-  } catch (error) {
-    console.error(`[${PROVIDER_NAME}] ${error.message || error}`);
-    return [];
   }
+
+  return [];
 }
 
 module.exports = { getStreams };

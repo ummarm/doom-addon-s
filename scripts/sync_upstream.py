@@ -30,6 +30,7 @@ D3ADLYROCKET_UPSTREAM_RAW_BASE = "https://raw.githubusercontent.com/D3adlyRocket
 D3ADLYROCKET_UPSTREAM_TREE_API = "https://api.github.com/repos/D3adlyRocket/All-in-One-Nuvio/git/trees/main?recursive=1"
 YORUIX_UPSTREAM_RAW_BASE = "https://raw.githubusercontent.com/yoruix/nuvio-providers/main"
 YORUIX_UPSTREAM_TREE_API = "https://api.github.com/repos/yoruix/nuvio-providers/git/trees/main?recursive=1"
+YORUIX_MANIFEST_URL = "https://raw.githubusercontent.com/yoruix/nuvio-providers/refs/heads/main/manifest.json"
 MURPH_MANIFEST_URL = "https://badboysxs-morpheus.hf.space/manifest.json"
 ADDON_DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/Doom-addon/main/domains.json"
 USER_AGENT = "Doom-addon direct upstream sync"
@@ -375,6 +376,19 @@ def fetch_upstream_tree_paths(tree_api: str) -> list[str]:
     return [item["path"] for item in tree if item.get("type") == "blob"]
 
 
+def fetch_upstream_manifest_paths(manifest_url: str) -> list[str]:
+    payload = fetch_json(manifest_url)
+    scrapers = payload.get("scrapers", []) if isinstance(payload, dict) else []
+    paths: list[str] = []
+    for scraper in scrapers:
+        if not isinstance(scraper, dict):
+            continue
+        filename = scraper.get("filename")
+        if isinstance(filename, str) and filename.endswith(".js"):
+            paths.append(filename)
+    return paths
+
+
 def normalize_token(value: str) -> str:
     return re.sub(r"[^a-z0-9]+", "", value.lower())
 
@@ -640,25 +654,41 @@ def main() -> int:
     changed_providers: list[ResolvedProvider] = []
     sync_warnings: list[str] = []
     upstream_tree_cache: dict[str, list[str]] = {}
+    upstream_manifest_cache: dict[str, list[str]] = {}
 
     for provider in PROVIDERS:
         if provider.scraper_id in PAUSED_UPSTREAM_PROVIDER_IDS:
             print(f"Info: `{provider.scraper_id}` upstream sync is paused.")
             continue
 
-        try:
-            upstream_tree_paths = upstream_tree_cache.get(provider.upstream_tree_api)
-            if upstream_tree_paths is None:
-                upstream_tree_paths = fetch_upstream_tree_paths(provider.upstream_tree_api)
-                upstream_tree_cache[provider.upstream_tree_api] = upstream_tree_paths
-        except Exception as exc:
-            upstream_tree_paths = []
-            warning = (
-                f"Upstream tree discovery failed for `{provider.scraper_id}`, so Doom-addon "
-                f"fell back to static paths: {exc}"
-            )
-            sync_warnings.append(warning)
-            print(f"Warning: {warning}")
+        if provider.upstream_raw_base == YORUIX_UPSTREAM_RAW_BASE:
+            try:
+                upstream_tree_paths = upstream_manifest_cache.get(YORUIX_MANIFEST_URL)
+                if upstream_tree_paths is None:
+                    upstream_tree_paths = fetch_upstream_manifest_paths(YORUIX_MANIFEST_URL)
+                    upstream_manifest_cache[YORUIX_MANIFEST_URL] = upstream_tree_paths
+            except Exception as exc:
+                upstream_tree_paths = []
+                warning = (
+                    f"Yoruix manifest discovery failed for `{provider.scraper_id}`, so Doom-addon "
+                    f"fell back to static paths: {exc}"
+                )
+                sync_warnings.append(warning)
+                print(f"Warning: {warning}")
+        else:
+            try:
+                upstream_tree_paths = upstream_tree_cache.get(provider.upstream_tree_api)
+                if upstream_tree_paths is None:
+                    upstream_tree_paths = fetch_upstream_tree_paths(provider.upstream_tree_api)
+                    upstream_tree_cache[provider.upstream_tree_api] = upstream_tree_paths
+            except Exception as exc:
+                upstream_tree_paths = []
+                warning = (
+                    f"Upstream tree discovery failed for `{provider.scraper_id}`, so Doom-addon "
+                    f"fell back to static paths: {exc}"
+                )
+                sync_warnings.append(warning)
+                print(f"Warning: {warning}")
 
         resolved_provider = None
         upstream_text = None
@@ -723,7 +753,7 @@ def main() -> int:
         "",
         "Sources:",
         f"- `{D3ADLYROCKET_UPSTREAM_RAW_BASE}`",
-        f"- `{YORUIX_UPSTREAM_RAW_BASE}`",
+        f"- `{YORUIX_MANIFEST_URL}`",
         f"- `{MURPH_MANIFEST_URL}`",
     ]
     if changed_providers:

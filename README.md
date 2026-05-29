@@ -10,6 +10,9 @@ upstream sources directly:
 - `HDHub4u Murph`
 - `Flix-Streams Emby`
 - `Flix-Streams MkvCinemas`
+- `Flix-Streams LotusVault`
+- `Flix-Streams ArchiveVault`
+- `Flix-Streams UHDMovies`
 - `MediaFusion`
 - `AIOStreams`
 - `HindMoviez`
@@ -37,7 +40,8 @@ every enabled provider, merges the results, and returns Stremio stream objects.
 - `providers/flix_streams_emby.js`
 - `providers/flix_streams_mkvcinemas.js`
 - `providers/flix_streams_lotusvault.js`
-- `providers/flix_streams_filesearchtools.js`
+- `providers/flix_streams_archivevault.js`
+- `providers/flix_streams_uhdmovies.js`
 - `providers/flix_streams_vegamovies.js`
 - `providers/mediafusion.js`
 - `providers/aiostreams.js`
@@ -102,9 +106,10 @@ default can be overridden if the token changes:
 FLIX_STREAMS_MANIFEST_URL=https://flixnest.app/flix-streams/u/<token>/manifest.json npm start
 ```
 
-The Flixnest group currently wraps Emby/Media Lib, MkvCinemas, LotusVault, and
-FileSearchTools streams from that configured Flix-Streams URL. VegaMovies stays
-registered but disabled because those links were previously marked unreliable.
+The Flixnest group currently wraps Emby/Media Lib, MkvCinemas, LotusVault,
+ArchiveVault, and UHDMovies streams from that configured Flix-Streams URL.
+VegaMovies stays registered but disabled because those links were previously
+marked unreliable.
 
 MediaFusion uses the configured MediaFusion manifest URL. The checked-in default
 can be overridden if the configured add-on URL changes:
@@ -167,7 +172,8 @@ The stream endpoint shape is:
   `domains.json`.
 - `HindMoviez` returns resolved direct URLs instead of relying on the upstream
   Cloudflare worker.
-- `Flix-Streams Emby` and `Flix-Streams MkvCinemas` wrap the configured
+- `Flix-Streams Emby`, `Flix-Streams MkvCinemas`, `Flix-Streams LotusVault`,
+  `Flix-Streams ArchiveVault`, and `Flix-Streams UHDMovies` wrap the configured
   Flix-Streams add-on URL and do not sync from the GitHub upstream providers.
 - `Flix-Streams VegaMovies` is kept in the repo but currently disabled because
   those Flixnest links are not working reliably.
@@ -217,7 +223,8 @@ Tracked upstream provider files:
 - `providers/flix_streams_emby.js`
 - `providers/flix_streams_mkvcinemas.js`
 - `providers/flix_streams_lotusvault.js`
-- `providers/flix_streams_filesearchtools.js`
+- `providers/flix_streams_archivevault.js`
+- `providers/flix_streams_uhdmovies.js`
 - `providers/flix_streams_vegamovies.js`
 - `providers/hindmoviez.js`
 - `providers/movieblast.js`

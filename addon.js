@@ -55,7 +55,8 @@ const addonGroups = {
       "flix_streams_emby",
       "flix_streams_mkvcinemas",
       "flix_streams_lotusvault",
-      "flix_streams_filesearchtools",
+      "flix_streams_archivevault",
+      "flix_streams_uhdmovies",
       "flix_streams_vegamovies"
     ]
   },
@@ -666,7 +667,8 @@ const UMBRELLA_PROVIDER_CODES = {
   "flix_streams_emby": "EMB",
   "flix_streams_mkvcinemas": "MKV",
   "flix_streams_lotusvault": "LV",
-  "flix_streams_filesearchtools": "FST",
+  "flix_streams_archivevault": "AV",
+  "flix_streams_uhdmovies": "UHD",
   "flix_streams_vegamovies": "VG",
   "mediafusion": "MF",
   "hindmoviez": "HM",
@@ -694,7 +696,8 @@ const SOURCE_DETAIL_NAMES = {
   "flix_streams_emby": "Darth Vader",
   "flix_streams_mkvcinemas": "Darth Vader",
   "flix_streams_lotusvault": "Darth Vader",
-  "flix_streams_filesearchtools": "Darth Vader",
+  "flix_streams_archivevault": "Darth Vader",
+  "flix_streams_uhdmovies": "Darth Vader",
   "flix_streams_vegamovies": "Darth Vader",
   "mediafusion": "Darth Vader",
   "hindmoviez": "Darth Vader",
@@ -814,7 +817,7 @@ const STREAM_DETAIL_IGNORE_WORDS = new Set([
   "dual", "dv", "dvd", "dvdrip", "eac3", "english", "esub", "file", "gb", "h264", "h265", "hd", "hdr", "hdrip",
   "hdhub4u", "hevc", "hindi", "hubcloud", "kbps", "mb", "mkv", "mkvcinemas", "cinemas", "moviebox", "multi",
   "original", "punjabi", "remux", "rip", "server", "stream", "tamil", "telugu", "truehd", "vader",
-  "web", "webdl", "webrip", "x264", "x265", "lotusvault", "filesearchtools", "container"
+  "web", "webdl", "webrip", "x264", "x265", "lotusvault", "archivevault", "uhdmovies", "container"
 ]);
 
 function titleTokens(value) {
@@ -1175,8 +1178,10 @@ function normalizeLanguageText(value) {
     .replace(/\bMkvCinemas\b/ig, "")
     .replace(/\bLotus\s*Vault\b/ig, "")
     .replace(/\bLotusVault\b/ig, "")
-    .replace(/\bFile\s*Search\s*Tools\b/ig, "")
-    .replace(/\bFileSearchTools\b/ig, "")
+    .replace(/\bArchive\s*Vault\b/ig, "")
+    .replace(/\bArchiveVault\b/ig, "")
+    .replace(/\bUHD\s*Movies\b/ig, "")
+    .replace(/\bUHDMovies\b/ig, "")
     .replace(/\bVegaMovies\b/ig, "")
     .replace(/\b4K\b/ig, "")
     .replace(/\b(?:2160p|1080p|720p|480p|360p|auto)\b/ig, "")
@@ -1342,7 +1347,8 @@ function enrichTrustedProviderStream(rawStream, provider, mediaInfo) {
     "moviebox",
     "movies4u_murph",
     "flix_streams_lotusvault",
-    "flix_streams_filesearchtools"
+    "flix_streams_archivevault",
+    "flix_streams_uhdmovies"
   ]);
   if (!rawStream || !trustedTitleProviders.has(provider.id) || !mediaInfo || !mediaInfo.title) {
     return rawStream;

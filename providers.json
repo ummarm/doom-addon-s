@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon",
-  "version": "1.1.22",
+  "version": "1.1.23",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -248,16 +248,39 @@
       ]
     },
     {
-      "id": "flix_streams_filesearchtools",
-      "name": "Flix-Streams FileSearchTools",
-      "description": "FileSearchTools results wrapped from the configured Flix-Streams add-on",
+      "id": "flix_streams_archivevault",
+      "name": "Flix-Streams ArchiveVault",
+      "description": "ArchiveVault results wrapped from the configured Flix-Streams add-on",
       "version": "1.0.0",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
         "tv"
       ],
-      "filename": "providers/flix_streams_filesearchtools.js",
+      "filename": "providers/flix_streams_archivevault.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "mkv",
+        "m3u8"
+      ],
+      "logo": "https://flixnest.app/flix-streams/static/icon.png",
+      "contentLanguage": [
+        "en",
+        "hi"
+      ]
+    },
+    {
+      "id": "flix_streams_uhdmovies",
+      "name": "Flix-Streams UHDMovies",
+      "description": "UHDMovies results wrapped from the configured Flix-Streams add-on",
+      "version": "1.0.0",
+      "author": "ummarm",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/flix_streams_uhdmovies.js",
       "enabled": true,
       "formats": [
         "mp4",

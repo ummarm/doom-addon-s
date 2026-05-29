@@ -1,6 +1,6 @@
 "use strict";
 
-const PROVIDER_NAME = "Flix-Streams FileSearchTools";
+const PROVIDER_NAME = "Flix-Streams UHDMovies";
 const DEFAULT_MANIFEST_URL = "https://flixnest.app/flix-streams/u/6p9xzp78nunz/manifest.json";
 
 function configuredBaseUrl() {
@@ -42,7 +42,7 @@ async function fetchFlixStreams(tmdbId, mediaType, season, episode) {
   return Array.isArray(payload.streams) ? payload.streams : [];
 }
 
-function isFileSearchToolsStream(stream) {
+function isUhdMoviesStream(stream) {
   const text = [
     stream && stream.name,
     stream && stream.message,
@@ -50,7 +50,7 @@ function isFileSearchToolsStream(stream) {
     stream && stream.description
   ].filter(Boolean).join(" ");
 
-  return /\bfile\s*search\s*tools\b/i.test(text) || /\bfilesearchtools\b/i.test(text);
+  return /\buhd\s*movies\b/i.test(text) || /\buhdmovies\b/i.test(text);
 }
 
 function normalizeFlixStream(stream) {
@@ -74,7 +74,7 @@ function normalizeFlixStream(stream) {
 async function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) {
   try {
     const streams = await fetchFlixStreams(tmdbId, mediaType, season, episode);
-    return streams.filter(isFileSearchToolsStream).map(normalizeFlixStream).filter(Boolean);
+    return streams.filter(isUhdMoviesStream).map(normalizeFlixStream).filter(Boolean);
   } catch (error) {
     console.error(`[${PROVIDER_NAME}] ${error.message || error}`);
     return [];

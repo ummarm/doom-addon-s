@@ -70,7 +70,7 @@ const addonManifests = Object.fromEntries(
       id: `${manifest.id}.${slug}`,
       name: group.name,
       description: slug === "mediafusion"
-        ? `${group.name} provider group for Doom-addon. Passes MediaFusion streams through unchanged except Hindi-first quality and size sorting.`
+        ? `${group.name} provider group for Doom-addon. Passes MediaFusion streams through with only title matching, blocked source-tag filtering, and Hindi-first quality/size sorting.`
         : `${group.name} provider group for Doom-addon. Uses the same Umbrella formatting, filtering, sorting, and playable checks as the main add-on.`
     })
   ])
@@ -105,6 +105,22 @@ function markPassthroughStream(stream) {
 
 function isPassthroughStream(stream) {
   return Boolean(stream && typeof stream === "object" && passthroughStreams.has(stream));
+}
+
+function mediaFusionStreamText(stream) {
+  const behaviorHints = stream && stream.behaviorHints;
+  return [
+    stream && stream.name,
+    stream && stream.title,
+    stream && stream.description,
+    behaviorHints && behaviorHints.filename,
+    behaviorHints && behaviorHints.bingeGroup
+  ].filter(Boolean).join("\n");
+}
+
+function hasBlockedMediaFusionTag(stream) {
+  return /(^|[^a-z0-9])(?:hdtc|hdts|telesync|telecine|telecne|tele)([^a-z0-9]|$)/i
+    .test(mediaFusionStreamText(stream));
 }
 
 function streamCacheKey(type, id, scope = "main") {
@@ -382,7 +398,7 @@ async function responseSample(response) {
 }
 
 function streamRequiresProbe(stream) {
-  return Boolean(stream.behaviorHints && ["hdhub4u", "hdhub4u_yoruix"].includes(stream.behaviorHints.doomProviderId));
+  return Boolean(stream.behaviorHints && ["hdhub4u", "hdhub4u_yoruix", "hdhub4u_murph"].includes(stream.behaviorHints.doomProviderId));
 }
 
 function isFastAcceptableStream(stream) {
@@ -1170,6 +1186,17 @@ async function collectProviderStreams(provider, parsed, tmdbId, mediaInfo) {
   if (isPassthroughProvider(provider)) {
     return (Array.isArray(rawStreams) ? rawStreams : [])
       .filter((stream) => stream && stream.url)
+      .filter((stream) => {
+        if (hasBlockedMediaFusionTag(stream)) {
+          console.log(`[MediaFusion] Rejected blocked source tag: ${stream.name || stream.title || stream.url}`);
+          return false;
+        }
+        if (!matchesRequestedMedia(stream, mediaInfo, parsed)) {
+          console.log(`[MediaFusion] Rejected wrong-title stream: ${stream.name || stream.title || stream.url}`);
+          return false;
+        }
+        return true;
+      })
       .map(markPassthroughStream);
   }
 

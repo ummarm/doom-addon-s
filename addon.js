@@ -70,7 +70,7 @@ const addonManifests = Object.fromEntries(
       id: `${manifest.id}.${slug}`,
       name: group.name,
       description: slug === "mediafusion"
-        ? `${group.name} provider group for Doom-addon. Passes MediaFusion streams through with only title matching, blocked source-tag filtering, and Hindi-first quality/size sorting.`
+        ? `${group.name} provider group for Doom-addon. Passes MediaFusion streams through with only title matching, Hindi/English filtering, blocked source-tag filtering, and Hindi-first quality/size sorting.`
         : `${group.name} provider group for Doom-addon. Uses the same Umbrella formatting, filtering, sorting, and playable checks as the main add-on.`
     })
   ])
@@ -121,6 +121,14 @@ function mediaFusionStreamText(stream) {
 function hasBlockedMediaFusionTag(stream) {
   return /(^|[^a-z0-9])(?:hdtc|hdts|telesync|telecine|telecne|tele)([^a-z0-9]|$)/i
     .test(mediaFusionStreamText(stream));
+}
+
+function hasAllowedMediaFusionLanguage(stream) {
+  const text = mediaFusionStreamText(stream);
+  if (/\b(?:tamil|telugu|malayalam|kannada|punjabi|bengali|bangla|marathi|gujarati|urdu|spanish|french|german|italian|portuguese|russian|japanese|korean|chinese|mandarin|cantonese|arabic|thai|indonesian|turkish|polish|dutch|latino|latin|castellano|espanol|español)\b/i.test(text)) {
+    return false;
+  }
+  return /\b(?:hindi|hin|english|eng)\b/i.test(text);
 }
 
 function streamCacheKey(type, id, scope = "main") {
@@ -1189,6 +1197,10 @@ async function collectProviderStreams(provider, parsed, tmdbId, mediaInfo) {
       .filter((stream) => {
         if (hasBlockedMediaFusionTag(stream)) {
           console.log(`[MediaFusion] Rejected blocked source tag: ${stream.name || stream.title || stream.url}`);
+          return false;
+        }
+        if (!hasAllowedMediaFusionLanguage(stream)) {
+          console.log(`[MediaFusion] Rejected non Hindi/English stream: ${stream.name || stream.title || stream.url}`);
           return false;
         }
         if (!matchesRequestedMedia(stream, mediaInfo, parsed)) {

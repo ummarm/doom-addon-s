@@ -1453,10 +1453,10 @@ function enrichTrustedProviderStream(rawStream, provider, mediaInfo) {
   });
 }
 
-async function collectProviderStreams(provider, parsed, tmdbId, mediaInfo) {
+async function collectProviderStreams(provider, parsed, tmdbId, mediaInfo, requestContext = {}) {
   const providerGetStreams = loadProvider(provider);
   const rawStreams = await withTimeout(
-    Promise.resolve(providerGetStreams(tmdbId, parsed.mediaType, parsed.season, parsed.episode, parsed.imdbId)),
+    Promise.resolve(providerGetStreams(tmdbId, parsed.mediaType, parsed.season, parsed.episode, parsed.imdbId, requestContext)),
     DEFAULT_TIMEOUT_MS,
     provider.name
   );
@@ -1489,10 +1489,10 @@ async function collectProviderStreams(provider, parsed, tmdbId, mediaInfo) {
     .filter(Boolean);
 }
 
-function startProviderCollection(parsed, tmdbId, mediaInfo, entries) {
+function startProviderCollection(parsed, tmdbId, mediaInfo, entries, requestContext = {}) {
   const results = [];
   const tasks = entries.map((provider, index) => (
-    collectProviderStreams(provider, parsed, tmdbId, mediaInfo)
+    collectProviderStreams(provider, parsed, tmdbId, mediaInfo, requestContext)
       .then((value) => {
         results[index] = { status: "fulfilled", value };
       })
@@ -1575,7 +1575,7 @@ async function finalizeStreams(providerResults, options = {}) {
   return sortStreams(qualityMatchedStreams);
 }
 
-async function startStreamBuild(type, id, entries) {
+async function startStreamBuild(type, id, entries, requestContext = {}) {
   const parsed = parseStremioId(type, id);
   if (!parsed) {
     return null;
@@ -1594,7 +1594,7 @@ async function startStreamBuild(type, id, entries) {
     return null;
   }
 
-  return Object.assign(startProviderCollection(parsed, tmdbId, mediaInfo, entries), { parsed, mediaInfo });
+  return Object.assign(startProviderCollection(parsed, tmdbId, mediaInfo, entries, requestContext), { parsed, mediaInfo });
 }
 
 function providerEntriesForScope(scope) {
@@ -1634,7 +1634,9 @@ async function getStreams(type, id, options = {}) {
     return inFlight.fastPromise;
   }
 
-  const buildStatePromise = startStreamBuild(type, id, entries);
+  const buildStatePromise = startStreamBuild(type, id, entries, {
+    requestHeaders: options.requestHeaders || {}
+  });
   const fullPromise = buildStatePromise
     .then(async (state) => {
       if (!state) {

@@ -1604,6 +1604,11 @@ function providerEntriesForScope(scope) {
   return addonGroupEntries[scope] || null;
 }
 
+function scopeHasProvider(scope, providerId) {
+  const entries = providerEntriesForScope(scope || "main");
+  return Array.isArray(entries) && entries.some((provider) => provider.id === providerId);
+}
+
 async function getStreams(type, id, options = {}) {
   const scope = options.scope || "main";
   const entries = providerEntriesForScope(scope);
@@ -1612,12 +1617,15 @@ async function getStreams(type, id, options = {}) {
   }
   const group = addonGroups[scope] || {};
   const qualityBand = options.qualityBand || group.qualityBand || "";
+  const cacheStreamsForScope = !entries.some((provider) => provider.id === "aiostreams");
 
   const key = streamCacheKey(type, id, scope);
-  const cached = cachedStreams(key);
-  if (cached) {
-    console.log(`[Stream cache] Hit for ${key} (${cached.length} streams)`);
-    return cached;
+  if (cacheStreamsForScope) {
+    const cached = cachedStreams(key);
+    if (cached) {
+      console.log(`[Stream cache] Hit for ${key} (${cached.length} streams)`);
+      return cached;
+    }
   }
 
   if (streamInflight.has(key)) {
@@ -1643,7 +1651,9 @@ async function getStreams(type, id, options = {}) {
       });
     })
     .then((streams) => {
-      rememberStreams(key, streams);
+      if (cacheStreamsForScope) {
+        rememberStreams(key, streams);
+      }
       return streams;
     })
     .catch((error) => {
@@ -1697,6 +1707,7 @@ module.exports = {
   addonManifests,
   addonGroups,
   getStreams,
+  scopeHasProvider,
   parseStremioId,
   resolveTmdbId,
   normalizeStream

@@ -3,7 +3,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const { manifest, addonManifests, getStreams } = require("./addon");
+const { manifest, addonManifests, getStreams, scopeHasProvider } = require("./addon");
 
 const PORT = Number(process.env.PORT || 7000);
 const HOST = process.env.HOST || "0.0.0.0";
@@ -128,7 +128,8 @@ const server = http.createServer(async (request, response) => {
         sendJson(response, 404, { error: "Add-on group not found" });
         return;
       }
-      sendJson(response, 200, { streams }, 300);
+      const cacheSeconds = scopeHasProvider(streamRequest.scope, "aiostreams") ? 0 : 300;
+      sendJson(response, 200, { streams }, cacheSeconds);
       return;
     }
 

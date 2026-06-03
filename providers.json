@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon",
-  "version": "1.1.27",
+  "version": "1.1.28",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -69,7 +69,7 @@
       "id": "hdhub4u",
       "name": "HDHub4u",
       "description": "Direct links from HDHub4u with high-speed download support",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

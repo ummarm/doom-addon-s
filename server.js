@@ -164,6 +164,32 @@ async function freshAioPlaybackUrl(entry) {
   return ranked[0] && ranked[0].score > 0 ? ranked[0].stream.url : candidates[0].url;
 }
 
+async function resolveAioHandoffUrl(playbackUrl) {
+  if (!isAioPlaybackUrl(playbackUrl)) {
+    return playbackUrl;
+  }
+
+  const response = await fetch(playbackUrl, {
+    headers: {
+      "Accept": "*/*",
+      "Range": "bytes=0-1",
+      "User-Agent": "Doom-addon/1.0"
+    },
+    redirect: "manual"
+  });
+
+  if (response.body && typeof response.body.cancel === "function") {
+    await response.body.cancel().catch(() => {});
+  }
+
+  const location = response.headers.get("location");
+  if (location && response.status >= 300 && response.status < 400) {
+    return new URL(location, playbackUrl).toString();
+  }
+
+  return playbackUrl;
+}
+
 async function handleAioRedirect(response, token) {
   cleanupAioRedirectEntries();
   const entry = aioRedirectEntries.get(token);
@@ -172,7 +198,8 @@ async function handleAioRedirect(response, token) {
     return;
   }
 
-  const location = await freshAioPlaybackUrl(entry);
+  const playbackUrl = await freshAioPlaybackUrl(entry);
+  const location = await resolveAioHandoffUrl(playbackUrl);
   response.writeHead(302, {
     "Access-Control-Allow-Origin": "*",
     "Cache-Control": "no-store",

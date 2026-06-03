@@ -332,6 +332,7 @@ PROVIDERS = (
     Provider("peachify", ("providers/peachify.js",), "providers/peachify.js", ("peachify",)),
     Provider("4khdhub_yoruix", ("providers/4khdhub.js",), "providers/4khdhub_yoruix.js", ("4khdhub", "hubcloud", "yoruix"), YORUIX_UPSTREAM_RAW_BASE, YORUIX_UPSTREAM_TREE_API),
     Provider("hdhub4u_yoruix", ("providers/hdhub4u.js", "src/hdhub4u/index.js"), "providers/hdhub4u_yoruix.js", ("hdhub4u", "yoruix"), YORUIX_UPSTREAM_RAW_BASE, YORUIX_UPSTREAM_TREE_API),
+    Provider("moviebox_yoruix", ("providers/moviebox.js",), "providers/moviebox_yoruix.js", ("moviebox", "yoruix"), YORUIX_UPSTREAM_RAW_BASE, YORUIX_UPSTREAM_TREE_API),
     Provider("moviesdrive", ("src/providers/moviesdrive.js", "providers/moviesdrive.js"), "providers/moviesdrive.js", ("moviesdrive",)),
     Provider("streamflix", ("providers/streamflix.js",), "providers/streamflix.js", ("streamflix",)),
 )
@@ -542,7 +543,7 @@ def transform_source(provider: Provider, text: str) -> str:
         text = patch_domain_source(text)
     elif provider.scraper_id == "moviesdrive":
         text = patch_moviesdrive_domain_source(text)
-    if provider.scraper_id == "moviebox":
+    if provider.scraper_id in {"moviebox", "moviebox_yoruix"}:
         text = patch_moviebox_crypto_source(text)
     if provider.scraper_id == "hdhub4u_yoruix":
         text = patch_yoruix_hdhub4u_source(text)

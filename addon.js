@@ -32,7 +32,7 @@ const addonGroups = {
   },
   yoruix: {
     name: "Umbrella Y",
-    providerIds: ["4khdhub_yoruix", "hdhub4u_yoruix"]
+    providerIds: ["4khdhub_yoruix", "hdhub4u_yoruix", "moviebox_yoruix"]
   },
   d3adlyrocket: {
     name: "Umbrella D",
@@ -728,6 +728,7 @@ const UMBRELLA_PROVIDER_CODES = {
   "hindmoviez": "HM",
   "movieblast": "MBL",
   "moviebox": "MB",
+  "moviebox_yoruix": "MB Y",
   "moviebox_murph": "MB M",
   "moviesdrive": "MD",
   "movies4u_murph": "M4U M",
@@ -757,6 +758,7 @@ const SOURCE_DETAIL_NAMES = {
   "hindmoviez": "Darth Vader",
   "movieblast": "Darth Vader",
   "moviebox": "Darth Vader",
+  "moviebox_yoruix": "Darth Vader",
   "moviebox_murph": "Murph Streams",
   "moviesdrive": "Darth Vader",
   "movies4u_murph": "Murph Streams",
@@ -1300,6 +1302,10 @@ function shouldKeepProviderStream(rawStream, provider) {
     rawStream.quality,
     rawStream.language
   ].filter(Boolean).join(" ");
+
+  if (provider.id === "moviebox_yoruix") {
+    return /\b(?:hindi|english|original)\b/i.test(text);
+  }
 
   if (provider.id === "peachify" || provider.id === "moviebox_murph") {
     return /\b(?:hindi|english)\b/i.test(text);

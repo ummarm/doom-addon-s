@@ -62,7 +62,22 @@ function isKnownNamedFlixStream(stream) {
     || /\b(?:lotus\s*vault|lotusvault)\b/i.test(text)
     || /\b(?:archive\s*vault|archivevault)\b/i.test(text)
     || /\buhd\s*movies?\b/i.test(text)
-    || /\bvega\s*movies?\b/i.test(text);
+    || /\bvega\s*movies?\b/i.test(text)
+    || /\b(?:4khdhub|hdhub4u|hubdrive|hubcloud)\b/i.test(text)
+    || /\/api\/(?:4khdhub|hdhub4u)\/media\b/i.test(text);
+}
+
+function isPlayableOtherCandidate(stream) {
+  if (!stream || !stream.url) {
+    return false;
+  }
+
+  const text = flixText(stream);
+  if (/\b(?:sale|discount|legacy users?|subscribe|support)\b/i.test(text)) {
+    return false;
+  }
+
+  return !isKnownNamedFlixStream(stream);
 }
 
 function normalizeFlixStream(stream) {
@@ -87,7 +102,7 @@ async function getStreams(tmdbId, mediaType = "movie", season = null, episode = 
   try {
     const streams = await fetchFlixStreams(tmdbId, mediaType, season, episode);
     return streams
-      .filter((stream) => !isKnownNamedFlixStream(stream))
+      .filter(isPlayableOtherCandidate)
       .map(normalizeFlixStream)
       .filter(Boolean);
   } catch (error) {

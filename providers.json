@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon",
-  "version": "2.0.25",
+  "version": "2.0.26",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -386,8 +386,8 @@
     {
       "id": "flix_streams_other",
       "name": "Flix-Streams Other",
-      "description": "Newly enabled Flix-Streams results that are not already covered by a named Flix-Streams wrapper",
-      "version": "1.0.0",
+      "description": "Newly enabled Flix-Streams results that are not already covered by a named Flix-Streams wrapper, excluding HDHub/4KHub proxy rows and promo rows",
+      "version": "1.0.1",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

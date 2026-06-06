@@ -1,7 +1,7 @@
 {
   "name": "add-on",
   "private": true,
-  "version": "2.0.19",
+  "version": "2.0.20",
   "description": "Doom-addon: a Stremio stream add-on with 4KHDHub, 4khdhub-tv, 4KHDHub Yoruix, HDHub4u, HDHub4u Murph, MovieBox Murph, Movies4u Murph, HDHub4u Yoruix, MovieBox Yoruix, UHDMovies Yoruix, MovieBlast Yoruix, Flix-Streams Emby, Flix-Streams MkvCinemas, Flix-Streams LotusVault, Flix-Streams ArchiveVault, Flix-Streams UHDMovies, Flix-Streams Other, MediaFusion, HindMoviez, MovieBlast, 4KHDHub Murph, 4KHDHub-NEW, MovieBox, MovieBox-Hindi, Movies4u, UHDMovies, MoviesDrive, Peachify, VidLink.",
   "license": "GPL-3.0",
   "engines": {

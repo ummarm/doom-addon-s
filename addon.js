@@ -614,7 +614,7 @@ async function responseSample(response) {
 }
 
 function streamRequiresProbe(stream) {
-  return Boolean(stream.behaviorHints && ["hdhub4u", "hdhub4u_yoruix", "hdhub4u_murph", "peachify", "vidlink"].includes(stream.behaviorHints.doomProviderId));
+  return Boolean(stream.behaviorHints && ["4khdhubnew", "hdhub4u", "hdhub4u_yoruix", "hdhub4u_murph", "peachify", "vidlink"].includes(stream.behaviorHints.doomProviderId));
 }
 
 function isFastAcceptableStream(stream) {

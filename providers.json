@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon",
-  "version": "2.0.29",
+  "version": "2.0.30",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -417,6 +417,29 @@
         "tv"
       ],
       "filename": "providers/flix_streams_hdhub4u.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "mkv",
+        "m3u8"
+      ],
+      "logo": "https://flixnest.app/flix-streams/static/icon.png",
+      "contentLanguage": [
+        "en",
+        "hi"
+      ]
+    },
+    {
+      "id": "flix_streams_debridvault",
+      "name": "Flix-Streams Debrid Vault",
+      "description": "Debrid Vault results wrapped from the configured Flix-Streams add-on",
+      "version": "1.0.0",
+      "author": "ummarm",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/flix_streams_debridvault.js",
       "enabled": true,
       "formats": [
         "mp4",

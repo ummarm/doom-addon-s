@@ -1,6 +1,6 @@
 "use strict";
 
-const PROVIDER_NAME = "Flix-Streams Other";
+const PROVIDER_NAME = "Flix-Streams Debrid Vault";
 const DEFAULT_MANIFEST_URL = "https://flixnest.app/flix-streams/u/6p9xzp78nunz/manifest.json";
 
 function configuredBaseUrl() {
@@ -42,8 +42,8 @@ async function fetchFlixStreams(tmdbId, mediaType, season, episode) {
   return Array.isArray(payload.streams) ? payload.streams : [];
 }
 
-function flixText(stream) {
-  return [
+function isDebridVaultStream(stream) {
+  const text = [
     stream && stream.name,
     stream && stream.message,
     stream && stream.title,
@@ -52,37 +52,10 @@ function flixText(stream) {
     stream && stream.behaviorHints && stream.behaviorHints.filename,
     stream && stream.behaviorHints && stream.behaviorHints.bingeGroup
   ].filter(Boolean).join(" ");
-}
 
-function isKnownNamedFlixStream(stream) {
-  const text = flixText(stream);
-  return /\b(?:emby|medialib|media library)\b/i.test(text)
-    || /\bmedia\s*lib\s*\(\s*[ej]\d*\s*\)/i.test(text)
-    || /\/api\/emby\/media\b/i.test(text)
-    || /\/api\/jellyfin\/media\b/i.test(text)
-    || /\b(?:mkv\s*cinemas?|mkvcinemas?|mkv\s*direct)\b/i.test(text)
-    || /\b(?:lotus\s*vault|lotusvault)\b/i.test(text)
-    || /\b(?:archive\s*vault|archivevault)\b/i.test(text)
-    || /\buhd\s*movies?\b/i.test(text)
-    || /\bvega\s*movies?\b/i.test(text)
-    || /\bdebrid\s*vault\b/i.test(text)
+  return /\bdebrid\s*vault\b/i.test(text)
     || /\bdebridvault\b/i.test(text)
-    || /\/api\/debrid[-_]?vault\/media\b/i.test(text)
-    || /\b(?:4khdhub|hdhub4u|hubdrive|hubcloud)\b/i.test(text)
-    || /\/api\/(?:4khdhub|hdhub4u)\/media\b/i.test(text);
-}
-
-function isPlayableOtherCandidate(stream) {
-  if (!stream || !stream.url) {
-    return false;
-  }
-
-  const text = flixText(stream);
-  if (/\b(?:sale|discount|legacy users?|subscribe|support)\b/i.test(text)) {
-    return false;
-  }
-
-  return !isKnownNamedFlixStream(stream);
+    || /\/api\/debrid[-_]?vault\/media\b/i.test(text);
 }
 
 function normalizeFlixStream(stream) {
@@ -106,10 +79,7 @@ function normalizeFlixStream(stream) {
 async function getStreams(tmdbId, mediaType = "movie", season = null, episode = null) {
   try {
     const streams = await fetchFlixStreams(tmdbId, mediaType, season, episode);
-    return streams
-      .filter(isPlayableOtherCandidate)
-      .map(normalizeFlixStream)
-      .filter(Boolean);
+    return streams.filter(isDebridVaultStream).map(normalizeFlixStream).filter(Boolean);
   } catch (error) {
     console.error(`[${PROVIDER_NAME}] ${error.message || error}`);
     return [];

@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon",
-  "version": "2.0.27",
+  "version": "2.0.28",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -371,6 +371,29 @@
         "tv"
       ],
       "filename": "providers/flix_streams_uhdmovies.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "mkv",
+        "m3u8"
+      ],
+      "logo": "https://flixnest.app/flix-streams/static/icon.png",
+      "contentLanguage": [
+        "en",
+        "hi"
+      ]
+    },
+    {
+      "id": "flix_streams_hdhub4u",
+      "name": "Flix-Streams HDHub4u",
+      "description": "HDHub4u results wrapped from the configured Flix-Streams add-on",
+      "version": "1.0.0",
+      "author": "ummarm",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/flix_streams_hdhub4u.js",
       "enabled": true,
       "formats": [
         "mp4",

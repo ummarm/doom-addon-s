@@ -77,6 +77,10 @@ const addonGroups = {
       "flix_streams_vegamovies"
     ]
   },
+  webstreamrmbg: {
+    name: "Umbrella W",
+    providerIds: ["webstreamrmbg"]
+  },
   mediafusion: {
     name: "Umbrella MF",
     providerIds: ["mediafusion"]
@@ -653,7 +657,8 @@ function streamRequiresProbe(stream) {
     "peachify",
     "vegamovies",
     "uhdmovies_yoruix",
-    "vidlink"
+    "vidlink",
+    "webstreamrmbg"
   ].includes(stream.behaviorHints.doomProviderId));
 }
 
@@ -782,6 +787,7 @@ const UMBRELLA_PROVIDER_CODES = {
   "flix_streams_debridvault": "DBV F",
   "flix_streams_other": "FLX",
   "flix_streams_vegamovies": "VG",
+  "webstreamrmbg": "WSM",
   "mediafusion": "MF",
   "hindmoviez": "HM",
   "movieblast": "MBL",
@@ -825,6 +831,7 @@ const SOURCE_DETAIL_NAMES = {
   "flix_streams_debridvault": "Darth Vader",
   "flix_streams_other": "Darth Vader",
   "flix_streams_vegamovies": "Darth Vader",
+  "webstreamrmbg": "Darth Vader",
   "mediafusion": "Darth Vader",
   "hindmoviez": "Darth Vader",
   "movieblast": "Darth Vader",

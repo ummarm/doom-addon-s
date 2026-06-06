@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon",
-  "version": "2.0.30",
+  "version": "2.1.0",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -493,6 +493,29 @@
         "m3u8"
       ],
       "logo": "https://flixnest.app/flix-streams/static/icon.png",
+      "contentLanguage": [
+        "en",
+        "hi"
+      ]
+    },
+    {
+      "id": "webstreamrmbg",
+      "name": "WebStreamrMBG",
+      "description": "WebStreamrMBG add-on wrapper filtered to Hindi/English, seekable candidates, Umbrella naming, playable checks, quality tabs and size sorting",
+      "version": "1.0.0",
+      "author": "newman2x/ummarm",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/webstreamrmbg.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "mkv",
+        "m3u8"
+      ],
+      "logo": "https://i.postimg.cc/9QZLkH7f/umbrella.png",
       "contentLanguage": [
         "en",
         "hi"

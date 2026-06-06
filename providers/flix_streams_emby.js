@@ -51,6 +51,7 @@ function isEmbyStream(stream) {
   ].filter(Boolean).join(" ");
 
   return /\b(?:emby|medialib|media library)\b/i.test(text)
+    || /\bmedia\s*lib\s*\(\s*e\d*\s*\)/i.test(text)
     || /\/api\/emby\/media\b/i.test(text);
 }
 

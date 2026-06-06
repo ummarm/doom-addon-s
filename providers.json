@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon",
-  "version": "2.0.26",
+  "version": "2.0.27",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -271,8 +271,8 @@
     {
       "id": "flix_streams_emby",
       "name": "Flix-Streams Emby",
-      "description": "Emby media library results wrapped from the configured Flix-Streams add-on",
-      "version": "1.0.2",
+      "description": "Emby media library results wrapped from the configured Flix-Streams add-on, including Media Lib(E) labels",
+      "version": "1.0.3",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

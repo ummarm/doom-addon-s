@@ -57,7 +57,9 @@ function flixText(stream) {
 function isKnownNamedFlixStream(stream) {
   const text = flixText(stream);
   return /\b(?:emby|medialib|media library)\b/i.test(text)
+    || /\bmedia\s*lib\s*\(\s*[ej]\d*\s*\)/i.test(text)
     || /\/api\/emby\/media\b/i.test(text)
+    || /\/api\/jellyfin\/media\b/i.test(text)
     || /\b(?:mkv\s*cinemas?|mkvcinemas?|mkv\s*direct)\b/i.test(text)
     || /\b(?:lotus\s*vault|lotusvault)\b/i.test(text)
     || /\b(?:archive\s*vault|archivevault)\b/i.test(text)

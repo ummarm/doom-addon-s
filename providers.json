@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -318,7 +318,7 @@
       "id": "flix_streams_lotusvault",
       "name": "Flix-Streams LotusVault",
       "description": "LotusVault results wrapped from the configured Flix-Streams add-on",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -433,7 +433,7 @@
       "id": "flix_streams_debridvault",
       "name": "Flix-Streams Debrid Vault",
       "description": "Debrid Vault results wrapped from the configured Flix-Streams add-on",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

@@ -2,6 +2,8 @@
 
 const PROVIDER_NAME = "Flix-Streams Debrid Vault";
 const DEFAULT_MANIFEST_URL = "https://flixnest.app/flix-streams/u/6p9xzp78nunz/manifest.json";
+const RETRY_STATUSES = new Set([429, 500, 502, 503, 504]);
+const RETRY_DELAYS_MS = [500, 1500];
 
 function configuredBaseUrl() {
   const raw = process.env.FLIX_STREAMS_MANIFEST_URL || process.env.FLIX_STREAMS_BASE_URL || DEFAULT_MANIFEST_URL;
@@ -27,19 +29,35 @@ async function fetchFlixStreams(tmdbId, mediaType, season, episode) {
 
   const stremioType = mediaType === "tv" ? "series" : mediaType;
   const url = `${baseUrl}/stream/${encodeURIComponent(stremioType)}/${encodeURIComponent(streamId(tmdbId, stremioType, season, episode))}.json`;
-  const response = await fetch(url, {
-    headers: {
-      "Accept": "application/json",
-      "User-Agent": "Doom-addon/1.0"
-    },
-    redirect: "follow"
-  });
+  const response = await fetchFlixJson(url);
   if (!response.ok) {
     throw new Error(`${PROVIDER_NAME} returned HTTP ${response.status}`);
   }
 
   const payload = await response.json();
   return Array.isArray(payload.streams) ? payload.streams : [];
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchFlixJson(url) {
+  let response;
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt += 1) {
+    response = await fetch(url, {
+      headers: {
+        "Accept": "application/json",
+        "User-Agent": "Doom-addon/2.1"
+      },
+      redirect: "follow"
+    });
+    if (!RETRY_STATUSES.has(response.status) || attempt === RETRY_DELAYS_MS.length) {
+      return response;
+    }
+    await delay(RETRY_DELAYS_MS[attempt]);
+  }
+  return response;
 }
 
 function isDebridVaultStream(stream) {

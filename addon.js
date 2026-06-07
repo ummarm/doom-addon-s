@@ -658,7 +658,10 @@ function streamRequiresProbe(stream) {
     "vegamovies",
     "uhdmovies_yoruix",
     "vidlink",
-    "webstreamrmbg"
+    "webstreamrmbg",
+    "flix_streams_emby",
+    "flix_streams_lotusvault",
+    "flix_streams_debridvault"
   ].includes(stream.behaviorHints.doomProviderId));
 }
 

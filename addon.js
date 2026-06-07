@@ -1697,7 +1697,8 @@ async function getStreams(type, id, options = {}) {
   }
   const group = addonGroups[scope] || {};
   const qualityBand = options.qualityBand || group.qualityBand || "";
-  const cacheStreamsForScope = !entries.some((provider) => provider.id === "aiostreams");
+  const useFastResponse = !qualityBand;
+  const cacheStreamsForScope = useFastResponse && !entries.some((provider) => provider.id === "aiostreams");
 
   const key = streamCacheKey(type, id, scope);
   if (cacheStreamsForScope) {
@@ -1711,7 +1712,7 @@ async function getStreams(type, id, options = {}) {
   if (streamInflight.has(key)) {
     console.log(`[Stream cache] Joining in-flight request for ${key}`);
     const inFlight = streamInflight.get(key);
-    return inFlight.fastPromise;
+    return useFastResponse ? inFlight.fastPromise : inFlight.fullPromise;
   }
 
   const buildStatePromise = startStreamBuild(type, id, entries, {
@@ -1784,7 +1785,7 @@ async function getStreams(type, id, options = {}) {
     });
 
   streamInflight.set(key, { fullPromise, fastPromise });
-  return Promise.race([fullPromise, fastPromise]);
+  return useFastResponse ? Promise.race([fullPromise, fastPromise]) : fullPromise;
 }
 
 module.exports = {

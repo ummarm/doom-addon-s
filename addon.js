@@ -15,6 +15,7 @@ const STREAM_FAST_PROBE_TIMEOUT_MS = Number(process.env.STREAM_FAST_PROBE_TIMEOU
 const MEDIAFUSION_PROBE_TIMEOUT_MS = Number(process.env.MEDIAFUSION_PROBE_TIMEOUT_MS || 8000);
 const QUALITY_SHARED_CACHE_SCOPE = "quality-shared";
 const QUALITY_TV_FAST_WAIT_MS = Number(process.env.QUALITY_TV_FAST_WAIT_MS || STREAM_FAST_PROVIDER_WAIT_MS);
+const SHARED_PREWARM_SCOPES = new Set(["main", "quality-4k", "quality-1080", "quality-low"]);
 
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "manifest.json"), "utf8"));
 const providerRegistry = JSON.parse(fs.readFileSync(path.join(ROOT, "providers.json"), "utf8"));
@@ -1791,6 +1792,18 @@ function isLiveSensitiveProvider(provider) {
   return Boolean(provider && (provider.id === "aiostreams" || provider.id === "torbox"));
 }
 
+function sharedProviderEntriesFor(entries) {
+  return entries.filter((provider) => !isLiveSensitiveProvider(provider));
+}
+
+function liveProviderEntriesFor(entries) {
+  return entries.filter(isLiveSensitiveProvider);
+}
+
+function sharedMasterCacheKey(type, id) {
+  return streamCacheKey(type, id, QUALITY_SHARED_CACHE_SCOPE);
+}
+
 function isLikelyAndroidTvRequest(headers = {}) {
   const userAgent = String(headers["user-agent"] || headers["User-Agent"] || "");
   return /android/i.test(userAgent)
@@ -1867,15 +1880,13 @@ function qualitySortFromStreams(streams, qualityBand) {
   return sortStreams(filterStreamsByQualityBand(streams.slice(), qualityBand), { qualityBand });
 }
 
-async function getQualityBandStreams(type, id, entries, qualityBand, requestContext = {}) {
-  const sharedEntries = entries.filter((provider) => !isLiveSensitiveProvider(provider));
-  const liveEntries = entries.filter(isLiveSensitiveProvider);
-  const androidTvFastResponse = isLikelyAndroidTvRequest(requestContext.requestHeaders);
-  const sharedKey = streamCacheKey(type, id, QUALITY_SHARED_CACHE_SCOPE);
-
+function getSharedMasterBuild(type, id, entries, requestContext = {}) {
+  const sharedEntries = sharedProviderEntriesFor(entries);
+  const sharedKey = sharedMasterCacheKey(type, id);
   let sharedFullPromise = Promise.resolve([]);
   let sharedFastPromise = sharedFullPromise;
   const cachedSharedStreams = sharedEntries.length ? cachedStreams(sharedKey) : null;
+
   if (cachedSharedStreams) {
     console.log(`[Stream cache] Hit for ${sharedKey} (${cachedSharedStreams.length} streams)`);
     sharedFullPromise = Promise.resolve(cachedSharedStreams);
@@ -1902,6 +1913,30 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
     streamInflight.set(sharedKey, { fullPromise: sharedFullPromise, fastPromise: sharedFastPromise });
   }
 
+  return { fullPromise: sharedFullPromise, fastPromise: sharedFastPromise };
+}
+
+function prewarmSharedMaster(type, id, entries, requestContext = {}) {
+  const sharedEntries = sharedProviderEntriesFor(entries);
+  if (sharedEntries.length === 0) {
+    return;
+  }
+
+  const sharedKey = sharedMasterCacheKey(type, id);
+  if (cachedStreams(sharedKey) || streamInflight.has(sharedKey)) {
+    return;
+  }
+
+  const build = getSharedMasterBuild(type, id, entries, requestContext);
+  build.fullPromise.catch((error) => {
+    console.error(`[Stream prewarm] ${sharedKey}: ${error.message || error}`);
+  });
+}
+
+async function getQualityBandStreams(type, id, entries, qualityBand, requestContext = {}) {
+  const sharedBuild = getSharedMasterBuild(type, id, entries, requestContext);
+  const liveEntries = liveProviderEntriesFor(entries);
+  const androidTvFastResponse = isLikelyAndroidTvRequest(requestContext.requestHeaders);
   const liveBuild = liveEntries.length > 0
     ? finalizedBuild(type, id, liveEntries, requestContext, {
       cacheKey: streamCacheKey(type, id, `${QUALITY_SHARED_CACHE_SCOPE}:live`),
@@ -1909,7 +1944,7 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
     })
     : { fullPromise: Promise.resolve([]), fastPromise: Promise.resolve([]) };
 
-  const sharedStreamsPromise = androidTvFastResponse ? sharedFastPromise : sharedFullPromise;
+  const sharedStreamsPromise = androidTvFastResponse ? sharedBuild.fastPromise : sharedBuild.fullPromise;
   const liveStreamsPromise = liveBuild.fullPromise;
   const [sharedStreams, liveStreams] = await Promise.all([sharedStreamsPromise, liveStreamsPromise]);
   return qualitySortFromStreams([...sharedStreams, ...liveStreams], qualityBand);
@@ -1923,11 +1958,30 @@ async function getStreams(type, id, options = {}) {
   }
   const group = addonGroups[scope] || {};
   const qualityBand = options.qualityBand || group.qualityBand || "";
+  const requestContext = {
+    requestHeaders: options.requestHeaders || {}
+  };
+
+  if (SHARED_PREWARM_SCOPES.has(scope)) {
+    prewarmSharedMaster(type, id, providerEntries, requestContext);
+  }
 
   if (qualityBand) {
-    return getQualityBandStreams(type, id, entries, qualityBand, {
-      requestHeaders: options.requestHeaders || {}
-    });
+    return getQualityBandStreams(type, id, entries, qualityBand, requestContext);
+  }
+
+  if (scope === "main") {
+    const sharedBuild = getSharedMasterBuild(type, id, providerEntries, requestContext);
+    const liveEntries = liveProviderEntriesFor(providerEntries);
+    const liveBuild = liveEntries.length > 0
+      ? finalizedBuild(type, id, liveEntries, requestContext, {
+        cacheKey: streamCacheKey(type, id, `${scope}:live`)
+      })
+      : { fullPromise: Promise.resolve([]), fastPromise: Promise.resolve([]) };
+    const androidTvFastResponse = isLikelyAndroidTvRequest(requestContext.requestHeaders);
+    const sharedStreamsPromise = androidTvFastResponse ? sharedBuild.fastPromise : sharedBuild.fullPromise;
+    const [sharedStreams, liveStreams] = await Promise.all([sharedStreamsPromise, liveBuild.fullPromise]);
+    return sortStreams([...sharedStreams, ...liveStreams]);
   }
 
   const hasTorbox = entriesHaveProvider(entries, "torbox");
@@ -1951,7 +2005,7 @@ async function getStreams(type, id, options = {}) {
   }
 
   const build = finalizedBuild(type, id, entries, {
-    requestHeaders: options.requestHeaders || {}
+    requestHeaders: requestContext.requestHeaders
   }, {
     cacheKey: key
   });

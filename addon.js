@@ -14,7 +14,7 @@ const STREAM_FAST_PROVIDER_WAIT_MS = Number(process.env.STREAM_FAST_PROVIDER_WAI
 const STREAM_FAST_PROBE_TIMEOUT_MS = Number(process.env.STREAM_FAST_PROBE_TIMEOUT_MS || 2500);
 const MEDIAFUSION_PROBE_TIMEOUT_MS = Number(process.env.MEDIAFUSION_PROBE_TIMEOUT_MS || 8000);
 const QUALITY_SHARED_CACHE_SCOPE = "quality-shared";
-const QUALITY_TV_FAST_WAIT_MS = Number(process.env.QUALITY_TV_FAST_WAIT_MS || STREAM_FAST_PROVIDER_WAIT_MS);
+const QUALITY_TV_FAST_WAIT_MS = Number(process.env.QUALITY_TV_FAST_WAIT_MS || 12000);
 const SHARED_PREWARM_SCOPES = new Set(["main", "quality-4k", "quality-1080", "quality-low"]);
 
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "manifest.json"), "utf8"));
@@ -1836,7 +1836,7 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
       return [];
     });
 
-  const fastPromise = buildStatePromise
+  const makeFastPromise = (fallbackToFull) => buildStatePromise
     .then(async (state) => {
       if (!state) {
         return [];
@@ -1848,9 +1848,11 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
       ]);
 
       const providerResults = state.results.filter(Boolean);
-      const fastProbeTimeoutMs = entries.some((provider) => provider.id.startsWith("flix_streams_"))
-        ? STREAM_PROBE_TIMEOUT_MS
-        : STREAM_FAST_PROBE_TIMEOUT_MS;
+      const fastProbeTimeoutMs = options.fastProbeTimeoutMs || (
+        entries.some((provider) => provider.id.startsWith("flix_streams_"))
+          ? STREAM_PROBE_TIMEOUT_MS
+          : STREAM_FAST_PROBE_TIMEOUT_MS
+      );
       const streams = await finalizeStreams(providerResults, {
         logFailures: false,
         mediaInfo: state.mediaInfo,
@@ -1866,14 +1868,16 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
         return streams;
       }
 
-      return fullPromise;
+      return fallbackToFull ? fullPromise : [];
     })
     .catch((error) => {
       console.error(`[Stream fast] ${options.cacheKey || `${type}:${id}`}: ${error.message || error}`);
-      return fullPromise;
+      return fallbackToFull ? fullPromise : [];
     });
+  const fastPromise = makeFastPromise(true);
+  const firstBatchPromise = makeFastPromise(false);
 
-  return { fullPromise, fastPromise };
+  return { fullPromise, fastPromise, firstBatchPromise };
 }
 
 function qualitySortFromStreams(streams, qualityBand) {
@@ -1885,20 +1889,24 @@ function getSharedMasterBuild(type, id, entries, requestContext = {}) {
   const sharedKey = sharedMasterCacheKey(type, id);
   let sharedFullPromise = Promise.resolve([]);
   let sharedFastPromise = sharedFullPromise;
+  let sharedFirstBatchPromise = sharedFullPromise;
   const cachedSharedStreams = sharedEntries.length ? cachedStreams(sharedKey) : null;
 
   if (cachedSharedStreams) {
     console.log(`[Stream cache] Hit for ${sharedKey} (${cachedSharedStreams.length} streams)`);
     sharedFullPromise = Promise.resolve(cachedSharedStreams);
     sharedFastPromise = sharedFullPromise;
+    sharedFirstBatchPromise = sharedFullPromise;
   } else if (sharedEntries.length > 0 && streamInflight.has(sharedKey)) {
     console.log(`[Stream cache] Joining shared quality build for ${sharedKey}`);
     const inflight = streamInflight.get(sharedKey);
     sharedFullPromise = inflight.fullPromise;
     sharedFastPromise = inflight.fastPromise || inflight.fullPromise;
+    sharedFirstBatchPromise = inflight.firstBatchPromise || sharedFastPromise;
   } else if (sharedEntries.length > 0) {
     const sharedBuild = finalizedBuild(type, id, sharedEntries, requestContext, {
       cacheKey: sharedKey,
+      fastProbeTimeoutMs: STREAM_FAST_PROBE_TIMEOUT_MS,
       fastWaitMs: QUALITY_TV_FAST_WAIT_MS
     });
     sharedFullPromise = sharedBuild.fullPromise
@@ -1910,10 +1918,19 @@ function getSharedMasterBuild(type, id, entries, requestContext = {}) {
         streamInflight.delete(sharedKey);
       });
     sharedFastPromise = sharedBuild.fastPromise;
-    streamInflight.set(sharedKey, { fullPromise: sharedFullPromise, fastPromise: sharedFastPromise });
+    sharedFirstBatchPromise = sharedBuild.firstBatchPromise;
+    streamInflight.set(sharedKey, {
+      fullPromise: sharedFullPromise,
+      fastPromise: sharedFastPromise,
+      firstBatchPromise: sharedFirstBatchPromise
+    });
   }
 
-  return { fullPromise: sharedFullPromise, fastPromise: sharedFastPromise };
+  return {
+    fullPromise: sharedFullPromise,
+    fastPromise: sharedFastPromise,
+    firstBatchPromise: sharedFirstBatchPromise
+  };
 }
 
 function prewarmSharedMaster(type, id, entries, requestContext = {}) {
@@ -1940,12 +1957,15 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
   const liveBuild = liveEntries.length > 0
     ? finalizedBuild(type, id, liveEntries, requestContext, {
       cacheKey: streamCacheKey(type, id, `${QUALITY_SHARED_CACHE_SCOPE}:live`),
+      fastProbeTimeoutMs: STREAM_FAST_PROBE_TIMEOUT_MS,
       fastWaitMs: QUALITY_TV_FAST_WAIT_MS
     })
     : { fullPromise: Promise.resolve([]), fastPromise: Promise.resolve([]) };
 
-  const sharedStreamsPromise = androidTvFastResponse ? sharedBuild.fastPromise : sharedBuild.fullPromise;
-  const liveStreamsPromise = liveBuild.fullPromise;
+  const sharedStreamsPromise = androidTvFastResponse ? sharedBuild.firstBatchPromise : sharedBuild.fullPromise;
+  const liveStreamsPromise = androidTvFastResponse
+    ? liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise
+    : liveBuild.fullPromise;
   const [sharedStreams, liveStreams] = await Promise.all([sharedStreamsPromise, liveStreamsPromise]);
   return qualitySortFromStreams([...sharedStreams, ...liveStreams], qualityBand);
 }
@@ -1975,12 +1995,17 @@ async function getStreams(type, id, options = {}) {
     const liveEntries = liveProviderEntriesFor(providerEntries);
     const liveBuild = liveEntries.length > 0
       ? finalizedBuild(type, id, liveEntries, requestContext, {
-        cacheKey: streamCacheKey(type, id, `${scope}:live`)
+        cacheKey: streamCacheKey(type, id, `${scope}:live`),
+        fastProbeTimeoutMs: STREAM_FAST_PROBE_TIMEOUT_MS,
+        fastWaitMs: QUALITY_TV_FAST_WAIT_MS
       })
       : { fullPromise: Promise.resolve([]), fastPromise: Promise.resolve([]) };
     const androidTvFastResponse = isLikelyAndroidTvRequest(requestContext.requestHeaders);
-    const sharedStreamsPromise = androidTvFastResponse ? sharedBuild.fastPromise : sharedBuild.fullPromise;
-    const [sharedStreams, liveStreams] = await Promise.all([sharedStreamsPromise, liveBuild.fullPromise]);
+    const sharedStreamsPromise = androidTvFastResponse ? sharedBuild.firstBatchPromise : sharedBuild.fullPromise;
+    const liveStreamsPromise = androidTvFastResponse
+      ? liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise
+      : liveBuild.fullPromise;
+    const [sharedStreams, liveStreams] = await Promise.all([sharedStreamsPromise, liveStreamsPromise]);
     return sortStreams([...sharedStreams, ...liveStreams]);
   }
 

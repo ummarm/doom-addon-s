@@ -5,7 +5,7 @@ $scriptPath = "C:\server\Doom-addon-S\scripts\update-windows.ps1"
 
 $taskRun = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$scriptPath`""
 
-schtasks /Create `
+C:\Windows\System32\schtasks.exe /Create `
   /TN "$taskName" `
   /TR "$taskRun" `
   /SC HOURLY `

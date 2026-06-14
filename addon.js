@@ -379,6 +379,7 @@ async function resolveMediaInfo(tmdbId, mediaType) {
 
 function qualityRank(value) {
   const text = String(value || "").toLowerCase();
+  if (/\b(?:bd\s*)?remux\b/.test(text)) return 5;
   if (/\b2160p?\b/.test(text) || /\buhd\b/.test(text) || /(^|[^a-z0-9])4k([^a-z0-9]|$)/.test(text)) return 5;
   if (/\b1440p?\b/.test(text) || /(^|[^a-z0-9])2k([^a-z0-9]|$)/.test(text)) return 4;
   if (/\b1080p?\b/.test(text) || /\bfhd\b/.test(text)) return 3;
@@ -438,7 +439,7 @@ function streamQualityBand(stream) {
   if (rank > 0 || /\b(?:720p|720|480p|480|360p|360|240p|240|144p|144)\b/i.test(text)) {
     return "low";
   }
-  return "1080";
+  return "low";
 }
 
 function filterStreamsByQualityBand(streams, qualityBand) {
@@ -1974,7 +1975,7 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
 
   const sharedStreamsPromise = preferInitialStreams(
     sharedBuild.fullPromise,
-    sharedBuild.firstBatchPromise || sharedBuild.fastPromise || sharedBuild.fullPromise,
+    sharedBuild.fastPromise || sharedBuild.fullPromise,
     `${type}:${id}:${qualityBand}:shared`
   );
   const liveStreamsPromise = preferInitialStreams(

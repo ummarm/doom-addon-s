@@ -14,6 +14,7 @@ const STREAM_FAST_PROVIDER_WAIT_MS = Number(process.env.STREAM_FAST_PROVIDER_WAI
 const STREAM_FAST_PROBE_TIMEOUT_MS = Number(process.env.STREAM_FAST_PROBE_TIMEOUT_MS || 2500);
 const MEDIAFUSION_PROBE_TIMEOUT_MS = Number(process.env.MEDIAFUSION_PROBE_TIMEOUT_MS || 8000);
 const QUALITY_SHARED_CACHE_SCOPE = "quality-shared";
+const QUALITY_PRIORITY_CACHE_SCOPE = "quality-priority";
 const STREAM_FIRST_BATCH_WAIT_MS = Number(process.env.STREAM_FIRST_BATCH_WAIT_MS || 8000);
 const QUALITY_TV_FAST_WAIT_MS = Number(process.env.QUALITY_TV_FAST_WAIT_MS || STREAM_FIRST_BATCH_WAIT_MS);
 const STREAM_QUALITY_SHARED_WAIT_MS = Number(process.env.STREAM_QUALITY_SHARED_WAIT_MS || 60000);
@@ -1852,8 +1853,28 @@ function liveProviderEntriesFor(entries) {
   return entries.filter(isLiveSensitiveProvider);
 }
 
+function isQualityPriorityProvider(provider) {
+  if (!provider) {
+    return false;
+  }
+  return isPassthroughProvider(provider) || [
+    "4khdhubnew",
+    "hdhub4u_yoruix",
+    "hindmoviez",
+    "vegamovies"
+  ].includes(provider.id);
+}
+
+function qualityPriorityEntriesFor(entries) {
+  return sharedProviderEntriesFor(entries).filter(isQualityPriorityProvider);
+}
+
 function sharedMasterCacheKey(type, id) {
   return streamCacheKey(type, id, QUALITY_SHARED_CACHE_SCOPE);
+}
+
+function qualityPriorityCacheKey(type, id) {
+  return streamCacheKey(type, id, QUALITY_PRIORITY_CACHE_SCOPE);
 }
 
 function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
@@ -1930,7 +1951,7 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
 }
 
 function qualitySortFromStreams(streams, qualityBand) {
-  return sortStreams(filterStreamsByQualityBand(streams.slice(), qualityBand), { qualityBand });
+  return sortStreams(filterStreamsByQualityBand(dedupeStreams(streams.slice()), qualityBand), { qualityBand });
 }
 
 async function preferInitialStreams(fullPromise, initialPromise, label) {
@@ -2039,6 +2060,56 @@ function getSharedMasterBuild(type, id, entries, requestContext = {}) {
   };
 }
 
+function getQualityPriorityBuild(type, id, entries, requestContext = {}) {
+  const priorityEntries = qualityPriorityEntriesFor(entries);
+  const priorityKey = qualityPriorityCacheKey(type, id);
+  let priorityFullPromise = Promise.resolve([]);
+  let priorityFastPromise = priorityFullPromise;
+  let priorityQualityWaitPromise = priorityFullPromise;
+  const cachedPriorityStreams = priorityEntries.length ? cachedStreams(priorityKey) : null;
+
+  if (cachedPriorityStreams) {
+    console.log(`[Stream cache] Hit for ${priorityKey} (${cachedPriorityStreams.length} streams)`);
+    priorityFullPromise = Promise.resolve(cachedPriorityStreams);
+    priorityFastPromise = priorityFullPromise;
+    priorityQualityWaitPromise = priorityFullPromise;
+  } else if (priorityEntries.length > 0 && streamInflight.has(priorityKey)) {
+    console.log(`[Stream cache] Joining priority quality build for ${priorityKey}`);
+    const inflight = streamInflight.get(priorityKey);
+    priorityFullPromise = inflight.fullPromise;
+    priorityFastPromise = inflight.fastPromise || inflight.fullPromise;
+    priorityQualityWaitPromise = inflight.qualityWaitPromise || priorityFastPromise;
+  } else if (priorityEntries.length > 0) {
+    const priorityBuild = finalizedBuild(type, id, priorityEntries, requestContext, {
+      cacheKey: priorityKey,
+      fastProbeTimeoutMs: STREAM_FAST_PROBE_TIMEOUT_MS,
+      fastWaitMs: QUALITY_TV_FAST_WAIT_MS,
+      qualityWaitMs: Math.min(STREAM_QUALITY_SHARED_WAIT_MS, DEFAULT_TIMEOUT_MS)
+    });
+    priorityFullPromise = priorityBuild.fullPromise
+      .then((streams) => {
+        rememberStreams(priorityKey, streams);
+        return streams;
+      })
+      .finally(() => {
+        streamInflight.delete(priorityKey);
+      });
+    priorityFastPromise = priorityBuild.fastPromise;
+    priorityQualityWaitPromise = priorityBuild.qualityWaitPromise || priorityFastPromise;
+    streamInflight.set(priorityKey, {
+      fullPromise: priorityFullPromise,
+      fastPromise: priorityFastPromise,
+      qualityWaitPromise: priorityQualityWaitPromise
+    });
+  }
+
+  return {
+    fullPromise: priorityFullPromise,
+    fastPromise: priorityFastPromise,
+    qualityWaitPromise: priorityQualityWaitPromise
+  };
+}
+
 function prewarmSharedMaster(type, id, entries, requestContext = {}) {
   const sharedEntries = sharedProviderEntriesFor(entries);
   if (sharedEntries.length === 0) {
@@ -2057,6 +2128,7 @@ function prewarmSharedMaster(type, id, entries, requestContext = {}) {
 }
 
 async function getQualityBandStreams(type, id, entries, qualityBand, requestContext = {}) {
+  const priorityBuild = getQualityPriorityBuild(type, id, entries, requestContext);
   const sharedBuild = getSharedMasterBuild(type, id, entries, requestContext);
   const liveEntries = liveProviderEntriesFor(entries);
   const liveBuild = liveEntries.length > 0
@@ -2072,6 +2144,11 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
     sharedBuild.qualityWaitPromise || sharedBuild.fastPromise || sharedBuild.fullPromise,
     `${type}:${id}:${qualityBand}:shared`
   );
+  const priorityStreamsPromise = preferQualitySharedStreams(
+    priorityBuild.fullPromise,
+    priorityBuild.qualityWaitPromise || priorityBuild.fastPromise || priorityBuild.fullPromise,
+    `${type}:${id}:${qualityBand}:priority`
+  );
   const sharedQualityStreamsPromise = preferQualitySharedStreams(
     sharedBuild.fullPromise,
     sharedStreamsPromise,
@@ -2082,8 +2159,12 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
     liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise,
     `${type}:${id}:${qualityBand}:live`
   );
-  const [sharedStreams, liveStreams] = await Promise.all([sharedQualityStreamsPromise, liveStreamsPromise]);
-  return qualitySortFromStreams([...sharedStreams, ...liveStreams], qualityBand);
+  const [priorityStreams, sharedStreams, liveStreams] = await Promise.all([
+    priorityStreamsPromise,
+    sharedQualityStreamsPromise,
+    liveStreamsPromise
+  ]);
+  return qualitySortFromStreams([...priorityStreams, ...sharedStreams, ...liveStreams], qualityBand);
 }
 
 async function getStreams(type, id, options = {}) {
@@ -2098,12 +2179,12 @@ async function getStreams(type, id, options = {}) {
     requestHeaders: options.requestHeaders || {}
   };
 
-  if (SHARED_PREWARM_SCOPES.has(scope)) {
-    prewarmSharedMaster(type, id, providerEntries, requestContext);
-  }
-
   if (qualityBand) {
     return getQualityBandStreams(type, id, entries, qualityBand, requestContext);
+  }
+
+  if (SHARED_PREWARM_SCOPES.has(scope)) {
+    prewarmSharedMaster(type, id, providerEntries, requestContext);
   }
 
   if (scope === "main") {

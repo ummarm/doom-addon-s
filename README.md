@@ -117,6 +117,13 @@ Provider-group add-ons use a 12 second fast wait by default:
 STREAM_FAST_PROVIDER_WAIT_MS=12000 npm start
 ```
 
+Quality add-ons wait longer for shared/direct providers before combining Torbox
+results, so the first Stremio response is less likely to be Torbox-only:
+
+```sh
+STREAM_QUALITY_SHARED_WAIT_MS=25000 npm start
+```
+
 Docker exposes this project on host port `7002` by default, while the container
 continues to listen on port `7000` for the Cloudflare tunnel:
 

@@ -16,6 +16,7 @@ const MEDIAFUSION_PROBE_TIMEOUT_MS = Number(process.env.MEDIAFUSION_PROBE_TIMEOU
 const QUALITY_SHARED_CACHE_SCOPE = "quality-shared";
 const STREAM_FIRST_BATCH_WAIT_MS = Number(process.env.STREAM_FIRST_BATCH_WAIT_MS || 8000);
 const QUALITY_TV_FAST_WAIT_MS = Number(process.env.QUALITY_TV_FAST_WAIT_MS || STREAM_FIRST_BATCH_WAIT_MS);
+const STREAM_QUALITY_SHARED_WAIT_MS = Number(process.env.STREAM_QUALITY_SHARED_WAIT_MS || 25000);
 const SHARED_PREWARM_SCOPES = new Set(["main", "quality-4k", "quality-1080", "quality-low"]);
 
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "manifest.json"), "utf8"));
@@ -1896,6 +1897,40 @@ async function preferInitialStreams(fullPromise, initialPromise, label) {
   return Promise.race([watchedFullPromise, watchedInitialPromise]);
 }
 
+async function preferQualitySharedStreams(fullPromise, initialPromise, label) {
+  let initialResolved = false;
+  let initialStreams = [];
+  const watchedInitialPromise = initialPromise.then((streams) => {
+    initialResolved = true;
+    initialStreams = streams;
+    return streams;
+  });
+  const watchedFullPromise = fullPromise.then((streams) => {
+    console.log(`[Stream quality] Returning ${streams.length} shared streams for ${label}`);
+    return streams;
+  });
+
+  const fullOrTimeout = await Promise.race([
+    watchedFullPromise,
+    delay(Math.max(0, STREAM_QUALITY_SHARED_WAIT_MS)).then(() => null)
+  ]);
+  if (fullOrTimeout) {
+    return fullOrTimeout;
+  }
+
+  if (initialResolved) {
+    console.log(`[Stream quality] Shared wait expired for ${label}; returning ${initialStreams.length} ready shared streams`);
+    return initialStreams;
+  }
+
+  const lateInitial = await Promise.race([
+    watchedInitialPromise,
+    delay(1000).then(() => [])
+  ]);
+  console.log(`[Stream quality] Shared wait expired for ${label}; returning ${lateInitial.length} late shared streams`);
+  return lateInitial;
+}
+
 function getSharedMasterBuild(type, id, entries, requestContext = {}) {
   const sharedEntries = sharedProviderEntriesFor(entries);
   const sharedKey = sharedMasterCacheKey(type, id);
@@ -1978,12 +2013,17 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
     sharedBuild.fastPromise || sharedBuild.fullPromise,
     `${type}:${id}:${qualityBand}:shared`
   );
+  const sharedQualityStreamsPromise = preferQualitySharedStreams(
+    sharedBuild.fullPromise,
+    sharedStreamsPromise,
+    `${type}:${id}:${qualityBand}:shared`
+  );
   const liveStreamsPromise = preferInitialStreams(
     liveBuild.fullPromise,
     liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise,
     `${type}:${id}:${qualityBand}:live`
   );
-  const [sharedStreams, liveStreams] = await Promise.all([sharedStreamsPromise, liveStreamsPromise]);
+  const [sharedStreams, liveStreams] = await Promise.all([sharedQualityStreamsPromise, liveStreamsPromise]);
   return qualitySortFromStreams([...sharedStreams, ...liveStreams], qualityBand);
 }
 

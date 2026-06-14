@@ -5,7 +5,7 @@ const path = require("path");
 
 const ROOT = __dirname;
 const TMDB_API_KEY = process.env.TMDB_API_KEY || "439c478a771f35c05022f9feabcca01c";
-const DEFAULT_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 45000);
+const DEFAULT_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 70000);
 const STREAM_PROBE_TIMEOUT_MS = Number(process.env.STREAM_PROBE_TIMEOUT_MS || 8000);
 const STREAM_PROBE_CONCURRENCY = Number(process.env.STREAM_PROBE_CONCURRENCY || 6);
 const STREAM_CACHE_TTL_MS = Number(process.env.STREAM_CACHE_TTL_MS || 10 * 60 * 1000);
@@ -16,7 +16,7 @@ const MEDIAFUSION_PROBE_TIMEOUT_MS = Number(process.env.MEDIAFUSION_PROBE_TIMEOU
 const QUALITY_SHARED_CACHE_SCOPE = "quality-shared";
 const STREAM_FIRST_BATCH_WAIT_MS = Number(process.env.STREAM_FIRST_BATCH_WAIT_MS || 8000);
 const QUALITY_TV_FAST_WAIT_MS = Number(process.env.QUALITY_TV_FAST_WAIT_MS || STREAM_FIRST_BATCH_WAIT_MS);
-const STREAM_QUALITY_SHARED_WAIT_MS = Number(process.env.STREAM_QUALITY_SHARED_WAIT_MS || 25000);
+const STREAM_QUALITY_SHARED_WAIT_MS = Number(process.env.STREAM_QUALITY_SHARED_WAIT_MS || 60000);
 const STREAM_DIRECT_PLAYBACK_MODE = !/^(0|false|no)$/i.test(process.env.STREAM_DIRECT_PLAYBACK_MODE || "true");
 const SHARED_PREWARM_SCOPES = new Set(["main", "quality-4k", "quality-1080", "quality-low"]);
 
@@ -158,7 +158,11 @@ function loadProvider(provider) {
 }
 
 function isPassthroughProvider(provider) {
-  return Boolean(provider && passthroughProviderIds.has(provider.id));
+  return Boolean(provider && (
+    passthroughProviderIds.has(provider.id)
+    || provider.id === "webstreamrmbg"
+    || provider.id.startsWith("flix_streams_")
+  ));
 }
 
 function markPassthroughStream(stream) {
@@ -1878,7 +1882,7 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
       return [];
     });
 
-  const makeFastPromise = (fallbackToFull) => buildStatePromise
+  const makeTimedPromise = (fallbackToFull, waitMs) => buildStatePromise
     .then(async (state) => {
       if (!state) {
         return [];
@@ -1886,7 +1890,7 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
 
       await Promise.race([
         state.donePromise,
-        delay(Math.max(0, options.fastWaitMs || STREAM_FAST_PROVIDER_WAIT_MS))
+        delay(Math.max(0, waitMs || STREAM_FAST_PROVIDER_WAIT_MS))
       ]);
 
       const providerResults = state.results.filter(Boolean);
@@ -1916,10 +1920,13 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
       console.error(`[Stream fast] ${options.cacheKey || `${type}:${id}`}: ${error.message || error}`);
       return fallbackToFull ? fullPromise : [];
     });
-  const fastPromise = makeFastPromise(true);
-  const firstBatchPromise = makeFastPromise(false);
+  const fastPromise = makeTimedPromise(true, options.fastWaitMs || STREAM_FAST_PROVIDER_WAIT_MS);
+  const firstBatchPromise = makeTimedPromise(false, options.fastWaitMs || STREAM_FAST_PROVIDER_WAIT_MS);
+  const qualityWaitPromise = options.qualityWaitMs
+    ? makeTimedPromise(false, options.qualityWaitMs)
+    : null;
 
-  return { fullPromise, fastPromise, firstBatchPromise };
+  return { fullPromise, fastPromise, firstBatchPromise, qualityWaitPromise };
 }
 
 function qualitySortFromStreams(streams, qualityBand) {
@@ -1982,6 +1989,7 @@ function getSharedMasterBuild(type, id, entries, requestContext = {}) {
   let sharedFullPromise = Promise.resolve([]);
   let sharedFastPromise = sharedFullPromise;
   let sharedFirstBatchPromise = sharedFullPromise;
+  let sharedQualityWaitPromise = sharedFullPromise;
   const cachedSharedStreams = sharedEntries.length ? cachedStreams(sharedKey) : null;
 
   if (cachedSharedStreams) {
@@ -1989,17 +1997,20 @@ function getSharedMasterBuild(type, id, entries, requestContext = {}) {
     sharedFullPromise = Promise.resolve(cachedSharedStreams);
     sharedFastPromise = sharedFullPromise;
     sharedFirstBatchPromise = sharedFullPromise;
+    sharedQualityWaitPromise = sharedFullPromise;
   } else if (sharedEntries.length > 0 && streamInflight.has(sharedKey)) {
     console.log(`[Stream cache] Joining shared quality build for ${sharedKey}`);
     const inflight = streamInflight.get(sharedKey);
     sharedFullPromise = inflight.fullPromise;
     sharedFastPromise = inflight.fastPromise || inflight.fullPromise;
     sharedFirstBatchPromise = inflight.firstBatchPromise || sharedFastPromise;
+    sharedQualityWaitPromise = inflight.qualityWaitPromise || sharedFastPromise;
   } else if (sharedEntries.length > 0) {
     const sharedBuild = finalizedBuild(type, id, sharedEntries, requestContext, {
       cacheKey: sharedKey,
       fastProbeTimeoutMs: STREAM_FAST_PROBE_TIMEOUT_MS,
-      fastWaitMs: QUALITY_TV_FAST_WAIT_MS
+      fastWaitMs: QUALITY_TV_FAST_WAIT_MS,
+      qualityWaitMs: STREAM_QUALITY_SHARED_WAIT_MS
     });
     sharedFullPromise = sharedBuild.fullPromise
       .then((streams) => {
@@ -2011,17 +2022,20 @@ function getSharedMasterBuild(type, id, entries, requestContext = {}) {
       });
     sharedFastPromise = sharedBuild.fastPromise;
     sharedFirstBatchPromise = sharedBuild.firstBatchPromise;
+    sharedQualityWaitPromise = sharedBuild.qualityWaitPromise || sharedFastPromise;
     streamInflight.set(sharedKey, {
       fullPromise: sharedFullPromise,
       fastPromise: sharedFastPromise,
-      firstBatchPromise: sharedFirstBatchPromise
+      firstBatchPromise: sharedFirstBatchPromise,
+      qualityWaitPromise: sharedQualityWaitPromise
     });
   }
 
   return {
     fullPromise: sharedFullPromise,
     fastPromise: sharedFastPromise,
-    firstBatchPromise: sharedFirstBatchPromise
+    firstBatchPromise: sharedFirstBatchPromise,
+    qualityWaitPromise: sharedQualityWaitPromise
   };
 }
 
@@ -2055,7 +2069,7 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
 
   const sharedStreamsPromise = preferInitialStreams(
     sharedBuild.fullPromise,
-    sharedBuild.fastPromise || sharedBuild.fullPromise,
+    sharedBuild.qualityWaitPromise || sharedBuild.fastPromise || sharedBuild.fullPromise,
     `${type}:${id}:${qualityBand}:shared`
   );
   const sharedQualityStreamsPromise = preferQualitySharedStreams(

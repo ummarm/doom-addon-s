@@ -118,10 +118,11 @@ STREAM_FAST_PROVIDER_WAIT_MS=12000 npm start
 ```
 
 Quality add-ons wait longer for shared/direct providers before combining Torbox
-results, so the first Stremio response is less likely to be Torbox-only:
+results, so slow upstream add-ons like Flixnest can make the first Stremio
+response:
 
 ```sh
-STREAM_QUALITY_SHARED_WAIT_MS=25000 npm start
+PROVIDER_TIMEOUT_MS=70000 STREAM_QUALITY_SHARED_WAIT_MS=60000 npm start
 ```
 
 Direct playback mode keeps Stremio-facing streams as direct URLs after they pass

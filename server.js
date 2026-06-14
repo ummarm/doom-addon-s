@@ -290,9 +290,9 @@ const server = http.createServer(async (request, response) => {
           `Torbox: ${url.origin}/addons/torbox/manifest.json`,
           `Umbrella MF: ${url.origin}/addons/mediafusion/manifest.json`,
           `Umbrella AIO: ${url.origin}/addons/aiostreams/manifest.json`,
-          `Umbrella 4K: ${url.origin}/addons/quality-4k/manifest.json`,
-          `Umbrella 1080: ${url.origin}/addons/quality-1080/manifest.json`,
-          `Umbrella Low: ${url.origin}/addons/quality-low/manifest.json`,
+          `UHD: ${url.origin}/addons/quality-4k/manifest.json`,
+          `FHD: ${url.origin}/addons/quality-1080/manifest.json`,
+          `HD: ${url.origin}/addons/quality-low/manifest.json`,
           ""
         ].join("\n")
       );

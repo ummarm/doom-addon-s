@@ -10,12 +10,11 @@ const STREAM_PROBE_TIMEOUT_MS = Number(process.env.STREAM_PROBE_TIMEOUT_MS || 80
 const STREAM_PROBE_CONCURRENCY = Number(process.env.STREAM_PROBE_CONCURRENCY || 6);
 const STREAM_CACHE_TTL_MS = Number(process.env.STREAM_CACHE_TTL_MS || 10 * 60 * 1000);
 const STREAM_CACHE_MAX_ENTRIES = Number(process.env.STREAM_CACHE_MAX_ENTRIES || 100);
-const STREAM_FAST_PROVIDER_WAIT_MS = Number(process.env.STREAM_FAST_PROVIDER_WAIT_MS || 25000);
+const STREAM_FAST_PROVIDER_WAIT_MS = Number(process.env.STREAM_FAST_PROVIDER_WAIT_MS || 12000);
 const STREAM_FAST_PROBE_TIMEOUT_MS = Number(process.env.STREAM_FAST_PROBE_TIMEOUT_MS || 2500);
 const MEDIAFUSION_PROBE_TIMEOUT_MS = Number(process.env.MEDIAFUSION_PROBE_TIMEOUT_MS || 8000);
 const QUALITY_SHARED_CACHE_SCOPE = "quality-shared";
-const STREAM_FIRST_BATCH_WAIT_MS = Number(process.env.STREAM_FIRST_BATCH_WAIT_MS || 16000);
-const STREAM_FULL_RESULT_WAIT_MS = Number(process.env.STREAM_FULL_RESULT_WAIT_MS || 55000);
+const STREAM_FIRST_BATCH_WAIT_MS = Number(process.env.STREAM_FIRST_BATCH_WAIT_MS || 8000);
 const QUALITY_TV_FAST_WAIT_MS = Number(process.env.QUALITY_TV_FAST_WAIT_MS || STREAM_FIRST_BATCH_WAIT_MS);
 const SHARED_PREWARM_SCOPES = new Set(["main", "quality-4k", "quality-1080", "quality-low"]);
 
@@ -100,17 +99,17 @@ const addonGroups = {
     providerIds: ["aiostreams"]
   },
   "quality-4k": {
-    name: "Umbrella 4K",
+    name: "UHD",
     providerIds: providerEntries.map((provider) => provider.id),
     qualityBand: "4k"
   },
   "quality-1080": {
-    name: "Umbrella 1080",
+    name: "FHD",
     providerIds: providerEntries.map((provider) => provider.id),
     qualityBand: "1080"
   },
   "quality-low": {
-    name: "Umbrella Low",
+    name: "HD",
     providerIds: providerEntries.map((provider) => provider.id),
     qualityBand: "low"
   }
@@ -380,12 +379,12 @@ async function resolveMediaInfo(tmdbId, mediaType) {
 
 function qualityRank(value) {
   const text = String(value || "").toLowerCase();
-  if (/\b(?:remux|uhd)\b/.test(text)) return 5;
-  if (/\b2160p?\b/.test(text) || /(^|[^a-z0-9])4k([^a-z0-9]|$)/.test(text)) return 5;
+  if (/\b2160p?\b/.test(text) || /\buhd\b/.test(text) || /(^|[^a-z0-9])4k([^a-z0-9]|$)/.test(text)) return 5;
   if (/\b1440p?\b/.test(text) || /(^|[^a-z0-9])2k([^a-z0-9]|$)/.test(text)) return 4;
-  if (/\b1080p?\b/.test(text)) return 3;
+  if (/\b1080p?\b/.test(text) || /\bfhd\b/.test(text)) return 3;
   if (/\b720p?\b/.test(text)) return 2;
   if (/\b480p?\b/.test(text)) return 1;
+  if (/\bhd\b/.test(text) && !/\b(?:uhd|fhd)\b/.test(text)) return 2;
   return 0;
 }
 
@@ -430,7 +429,7 @@ function streamQualityRank(stream) {
 function streamQualityBand(stream) {
   const text = streamQualityText(stream);
   const rank = streamQualityRank(stream);
-  if (rank >= 5 || /\b(?:remux|uhd)\b/i.test(text)) {
+  if (rank >= 5 || /\buhd\b/i.test(text)) {
     return "4k";
   }
   if (rank === 3) {
@@ -1880,23 +1879,20 @@ function qualitySortFromStreams(streams, qualityBand) {
   return sortStreams(filterStreamsByQualityBand(streams.slice(), qualityBand), { qualityBand });
 }
 
-async function preferFullStreams(fullPromise, earlyPromise, waitMs, label) {
+async function preferInitialStreams(fullPromise, initialPromise, label) {
   let fullResolved = false;
   const watchedFullPromise = fullPromise.then((streams) => {
     fullResolved = true;
     return streams;
   });
-
-  const timeoutStreams = delay(Math.max(0, waitMs)).then(async () => {
-    if (fullResolved) {
-      return watchedFullPromise;
+  const watchedInitialPromise = initialPromise.then((streams) => {
+    if (!fullResolved) {
+      console.log(`[Stream initial] Returning ${streams.length} first-batch streams for ${label}; full provider build continues in background`);
     }
-    const streams = await earlyPromise;
-    console.log(`[Stream full] ${label} still building after ${waitMs}ms; returning ${streams.length} early streams`);
     return streams;
   });
 
-  return Promise.race([watchedFullPromise, timeoutStreams]);
+  return Promise.race([watchedFullPromise, watchedInitialPromise]);
 }
 
 function getSharedMasterBuild(type, id, entries, requestContext = {}) {
@@ -1976,16 +1972,14 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
     })
     : { fullPromise: Promise.resolve([]), fastPromise: Promise.resolve([]) };
 
-  const sharedStreamsPromise = preferFullStreams(
+  const sharedStreamsPromise = preferInitialStreams(
     sharedBuild.fullPromise,
     sharedBuild.firstBatchPromise || sharedBuild.fastPromise || sharedBuild.fullPromise,
-    STREAM_FULL_RESULT_WAIT_MS,
     `${type}:${id}:${qualityBand}:shared`
   );
-  const liveStreamsPromise = preferFullStreams(
+  const liveStreamsPromise = preferInitialStreams(
     liveBuild.fullPromise,
     liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise,
-    STREAM_FULL_RESULT_WAIT_MS,
     `${type}:${id}:${qualityBand}:live`
   );
   const [sharedStreams, liveStreams] = await Promise.all([sharedStreamsPromise, liveStreamsPromise]);
@@ -2022,16 +2016,14 @@ async function getStreams(type, id, options = {}) {
         fastWaitMs: QUALITY_TV_FAST_WAIT_MS
       })
       : { fullPromise: Promise.resolve([]), fastPromise: Promise.resolve([]) };
-    const sharedStreamsPromise = preferFullStreams(
+    const sharedStreamsPromise = preferInitialStreams(
       sharedBuild.fullPromise,
       sharedBuild.firstBatchPromise || sharedBuild.fastPromise || sharedBuild.fullPromise,
-      STREAM_FULL_RESULT_WAIT_MS,
       `${type}:${id}:main:shared`
     );
-    const liveStreamsPromise = preferFullStreams(
+    const liveStreamsPromise = preferInitialStreams(
       liveBuild.fullPromise,
       liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise,
-      STREAM_FULL_RESULT_WAIT_MS,
       `${type}:${id}:main:live`
     );
     const [sharedStreams, liveStreams] = await Promise.all([sharedStreamsPromise, liveStreamsPromise]);

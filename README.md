@@ -77,9 +77,9 @@ http://localhost:7000/addons/d3adlyrocket/manifest.json # Umbrella D
 http://localhost:7000/addons/flixnest/manifest.json     # Umbrella F
 http://localhost:7000/addons/mediafusion/manifest.json  # Umbrella MF
 http://localhost:7000/addons/aiostreams/manifest.json   # Umbrella AIO
-http://localhost:7000/addons/quality-4k/manifest.json   # Umbrella 4K
-http://localhost:7000/addons/quality-1080/manifest.json # Umbrella 1080
-http://localhost:7000/addons/quality-low/manifest.json  # Umbrella Low
+http://localhost:7000/addons/quality-4k/manifest.json   # UHD
+http://localhost:7000/addons/quality-1080/manifest.json # FHD
+http://localhost:7000/addons/quality-low/manifest.json  # HD
 ```
 
 Hosted Stremio install URLs for this separated repo are:
@@ -104,20 +104,17 @@ opens faster. The default cache TTL is 10 minutes and can be changed with:
 STREAM_CACHE_TTL_MS=600000 npm start
 ```
 
-The add-on also returns a TV-safe stream batch while very slow providers keep
-finishing in the background. The default provider wait is 25 seconds so the
-first response includes as many streams as possible before TV clients time out:
+The add-on returns a first stream batch quickly while very slow providers keep
+finishing in the background. The default first-batch wait is 8 seconds:
 
 ```sh
-STREAM_FAST_PROVIDER_WAIT_MS=25000 npm start
+STREAM_FIRST_BATCH_WAIT_MS=8000 npm start
 ```
 
-For this separated Stremio add-on, the server prefers the full provider result
-set before falling back to the early TV-safe batch. The default full-result wait
-is 55 seconds:
+Provider-group add-ons use a 12 second fast wait by default:
 
 ```sh
-STREAM_FULL_RESULT_WAIT_MS=55000 npm start
+STREAM_FAST_PROVIDER_WAIT_MS=12000 npm start
 ```
 
 Docker exposes this project on host port `7002` by default, while the container
@@ -168,9 +165,9 @@ AIOStreams streams are passed through without Umbrella card formatting,
 playable probes, blocked-tag filtering, language filtering, or de-duplication.
 Results use the same quality and size sorting.
 
-Quality group add-ons are also exposed. `Umbrella 4K` keeps REMUX, UHD, 4K,
-and 2160p streams. `Umbrella 1080` keeps 1080p streams plus streams where no
-quality can be detected. `Umbrella Low` keeps 720p, 480p, 360p, and lower
+Quality group add-ons are also exposed. `UHD` keeps UHD, 4K,
+and 2160p streams. `FHD` keeps 1080p/FHD streams plus streams where no
+quality can be detected. `HD` keeps 720p, 480p, 360p, and lower
 streams. These quality groups use all enabled providers and keep the main
 add-on rules, except AIOStreams remains pass-through before quality routing.
 

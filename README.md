@@ -112,6 +112,21 @@ first response includes as many streams as possible before TV clients time out:
 STREAM_FAST_PROVIDER_WAIT_MS=25000 npm start
 ```
 
+For this separated Stremio add-on, the server prefers the full provider result
+set before falling back to the early TV-safe batch. The default full-result wait
+is 55 seconds:
+
+```sh
+STREAM_FULL_RESULT_WAIT_MS=55000 npm start
+```
+
+Docker exposes this project on host port `7002` by default, while the container
+continues to listen on port `7000` for the Cloudflare tunnel:
+
+```text
+http://localhost:7002/manifest.json
+```
+
 Flix-Streams wrappers use the configured Flix-Streams manifest URL. The checked-in
 default can be overridden if the token changes:
 

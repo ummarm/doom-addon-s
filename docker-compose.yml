@@ -6,8 +6,9 @@ services:
     environment:
       HOST: 0.0.0.0
       PORT: 7000
+      STREAM_FULL_RESULT_WAIT_MS: 55000
     ports:
-      - "7000:7000"
+      - "7002:7000"
 
   doom-addon-s-tunnel:
     image: cloudflare/cloudflared:latest

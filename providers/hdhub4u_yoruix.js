@@ -69,7 +69,7 @@ var import_cheerio_without_node_native2 = __toESM(require("cheerio-without-node-
 var TMDB_API_KEY = "439c478a771f35c05022f9feabcca01c";
 var TMDB_BASE_URL = "https://api.themoviedb.org/3";
 var MAIN_URL = "https://new6.hdhub4u.fo";
-var DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/Doom-addon/main/domains.json";
+var DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/doom-addon-s/main/domains.json";
 var DOMAIN_CACHE_TTL = 4 * 60 * 60 * 1e3;
 var HEADERS = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0",
@@ -1211,7 +1211,7 @@ function __doomFilterSeekableStreams(streams, providerLabel) {
       .catch(function() { return { stream: stream, ok: false }; });
   })).then(function(results) {
     var filtered = results.filter(function(item) { return item.ok; }).map(function(item) { return item.stream; });
-    var label = providerLabel || "[Doom-addon]";
+    var label = providerLabel || "[Doom-addon-S]";
     if (filtered.length === 0) {
       console.log(label + " Seekable filter kept 0/" + streams.length + " streams; returning original streams as fallback");
       return streams;
@@ -1229,7 +1229,7 @@ function __doomFilterSeekableStreams(streams, providerLabel) {
   var __doomOriginalGetStreams = getStreams;
   var __doomProviderLabel = typeof PLUGIN_TAG !== "undefined"
     ? PLUGIN_TAG
-    : (typeof TAG !== "undefined" ? TAG : "[Doom-addon]");
+    : (typeof TAG !== "undefined" ? TAG : "[Doom-addon-S]");
 
   var __doomWrappedGetStreams = function() {
     return Promise.resolve(__doomOriginalGetStreams.apply(this, arguments))
@@ -1289,16 +1289,16 @@ function __doomNormalizeStream(rawStream) {
   if (typeof rawStream.videoSize === "number" && rawStream.videoSize > 0 && !behaviorHints.videoSize) {
     behaviorHints.videoSize = rawStream.videoSize;
   }
-  if (!behaviorHints.bingeGroup) {
-    var providerId = typeof PLUGIN_TAG !== "undefined" ? PLUGIN_TAG : (typeof TAG !== "undefined" ? TAG : "doom-addon");
+  if (!behaviorHints.bingeGroup || behaviorHints.bingeGroup === "doom-addon") {
+    var providerId = typeof PLUGIN_TAG !== "undefined" ? PLUGIN_TAG : (typeof TAG !== "undefined" ? TAG : "doom-addon-s");
     behaviorHints.bingeGroup = String(providerId).replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   }
   if (!__doomLooksWebReady(targetUrl) || requestHeaders) behaviorHints.notWebReady = true;
   if (requestHeaders) behaviorHints.proxyHeaders = { request: requestHeaders };
 
-  var description = rawStream.description || rawStream.title || rawStream.name || "Doom-addon stream";
+  var description = rawStream.description || rawStream.title || rawStream.name || "Doom-addon-S stream";
   return {
-    name: rawStream.name || "Doom-addon",
+    name: rawStream.name || "Doom-addon-S",
     title: description,
     description: description,
     url: targetUrl,

@@ -37,7 +37,7 @@ FLIX_STREAMS_MANIFEST_URL = "https://flixnest.app/flix-streams/u/6p9xzp78nunz/ma
 MURPH_MANIFEST_URL = "https://badboysxs-morpheus.hf.space/manifest.json"
 WEBSTREAMRMBG_REPOSITORY_URL = "https://github.com/newman2x/WebStreamrMBG"
 WEBSTREAMRMBG_MANIFEST_URL = "https://87d6a6ef6b58-webstreamrmbg.baby-beamup.club/manifest.json"
-TORBOX_MANIFEST_URL = "https://aiostreamsfortheweebsstable.midnightignite.me/stremio/4e02e39b-c022-4ce5-ad67-eeaca6b2fb5e/eyJpIjoid0k4WWxWZnQvaVhZNnkvTjZnN2sxUT09IiwiZSI6IlU4Z0tBYUp1WnQxaGJrQTgrT1FTS3Y0OWRmbG1wQVc1NzdLV1IzRGRBUWs9IiwidCI6ImEifQ/manifest.json"
+TORBOX_MANIFEST_URL = "https://aiostreamsfortheweebsstable.midnightignite.me/stremio/1d3081a9-8a56-4144-9e93-f878a2a491c4/eyJpIjoiellKWWVHMUxGUXdsQXpNUGxvbk8xZz09IiwiZSI6InQ4OWNlRmFPVytBTHBpa0VjeDVuSGRZYk1LMVB0YTdmVUt3QmN2NzNuUTQ9IiwidCI6ImEifQ/manifest.json"
 ADDON_DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/doom-addon-s/main/domains.json"
 UPSTREAM_DOMAINS_URL = "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/domains.json"
 USER_AGENT = "Doom-addon-S direct upstream sync"
@@ -671,8 +671,8 @@ function __doomNormalizeStream(rawStream) {
   if (typeof rawStream.videoSize === "number" && rawStream.videoSize > 0 && !behaviorHints.videoSize) {
     behaviorHints.videoSize = rawStream.videoSize;
   }
-  if (!behaviorHints.bingeGroup) {
-    var providerId = typeof PLUGIN_TAG !== "undefined" ? PLUGIN_TAG : (typeof TAG !== "undefined" ? TAG : "doom-addon");
+  if (!behaviorHints.bingeGroup || behaviorHints.bingeGroup === "doom-addon") {
+    var providerId = typeof PLUGIN_TAG !== "undefined" ? PLUGIN_TAG : (typeof TAG !== "undefined" ? TAG : "doom-addon-s");
     behaviorHints.bingeGroup = String(providerId).replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   }
   if (!__doomLooksWebReady(targetUrl) || requestHeaders) behaviorHints.notWebReady = true;
@@ -1035,6 +1035,12 @@ def patch_moviebox_crypto_source(text: str) -> str:
     return 'var CryptoJS = require("crypto-js");\n' + text.lstrip("\n")
 
 
+def patch_movies4u_cheerio_source(text: str) -> str:
+    if "cheerio" not in text or "cheerio-without-node-native" in text:
+        return text
+    return 'var cheerio = require("cheerio-without-node-native");\n' + text.lstrip("\n")
+
+
 def transform_source(provider: Provider, text: str) -> str:
     if provider.scraper_id in {"4khdhub", "4khdhubtv", "4khdhubnew", "hdhub4u", "4khdhub_yoruix", "hdhub4u_yoruix"} and "DOMAINS_URL" in text:
         text = patch_domain_source(text)
@@ -1044,6 +1050,8 @@ def transform_source(provider: Provider, text: str) -> str:
         text = patch_moviesdrive_domain_source(text)
     if provider.scraper_id in {"moviebox", "movieboxhindi", "moviebox_yoruix"}:
         text = patch_moviebox_crypto_source(text)
+    if provider.scraper_id == "movies4u":
+        text = patch_movies4u_cheerio_source(text)
     if provider.scraper_id == "hdhub4u_yoruix":
         text = patch_yoruix_hdhub4u_source(text)
     if provider.scraper_id == "hindmoviez":
@@ -1076,6 +1084,26 @@ def write_json_if_changed(path: Path, payload: dict) -> bool:
         return False
     path.write_text(next_text, encoding="utf-8")
     return True
+
+
+def retarget_local_variant_files() -> tuple[set[str], list[str]]:
+    changed_ids: set[str] = set()
+    changed_files: list[str] = []
+    local_variant_patches = {
+        "4khdhubtv": (REPO_ROOT / "providers/4khdhub_tv.js", patch_domain_source),
+    }
+
+    for scraper_id, (path, patcher) in local_variant_patches.items():
+        if not path.exists():
+            continue
+        current_text = path.read_text(encoding="utf-8")
+        patched_text = patcher(current_text)
+        if patched_text != current_text:
+            path.write_text(patched_text, encoding="utf-8")
+            changed_ids.add(scraper_id)
+            changed_files.append(str(path.relative_to(REPO_ROOT)))
+
+    return changed_ids, changed_files
 
 
 def normalize_domain_value(value: object) -> str:
@@ -1225,8 +1253,9 @@ def package_description(names: list[str]) -> str:
 
 def update_versions(changed_ids: set[str]) -> tuple[bool, list[str], dict]:
     registry = load_provider_registry()
+    registry["name"] = "Doom-addon-S"
     if not changed_ids:
-        return False, [], registry
+        return write_json_if_changed(PROVIDER_REGISTRY_PATH, registry), [], registry
 
     changes: list[str] = []
     old_repo_version = registry["version"]
@@ -1428,6 +1457,8 @@ def main() -> int:
             provider.local_path.write_text(transformed_text, encoding="utf-8")
             changed_providers.append(resolved_provider)
 
+    changed_local_variant_ids, changed_local_variant_files = retarget_local_variant_files()
+
     flixnest_manifest_url = manifests.get("flixnest", FLIX_STREAMS_MANIFEST_URL)
     murph_manifest_url = manifests.get("murph", MURPH_MANIFEST_URL)
     webstreamrmbg_manifest_url = manifests.get("webstreamrmbg", WEBSTREAMRMBG_MANIFEST_URL)
@@ -1437,15 +1468,17 @@ def main() -> int:
     sync_warnings.extend(check_manifest_available("Torbox", torbox_manifest_url))
     sync_warnings.extend(check_murph_manifest(murph_manifest_url))
 
-    changed_ids = {provider.scraper_id for provider in changed_providers} | changed_domain_ids
+    changed_ids = {provider.scraper_id for provider in changed_providers} | changed_domain_ids | changed_local_variant_ids
     registry_changed, version_changes, registry = update_versions(changed_ids)
     changed_files: list[str] = [provider.provider.local_path_str for provider in changed_providers]
+    changed_files.extend(changed_local_variant_files)
     if changed_domain_ids:
         changed_files.append("domains.json")
 
+    if registry_changed:
+        changed_files.append("providers.json")
+
     if changed_ids:
-        if registry_changed:
-            changed_files.append("providers.json")
         if update_stremio_manifest(registry):
             changed_files.append("manifest.json")
         if update_package(registry):

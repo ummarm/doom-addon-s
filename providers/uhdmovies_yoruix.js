@@ -533,7 +533,7 @@ function __doomFilterSeekableStreams(streams, providerLabel) {
       .catch(function() { return { stream: stream, ok: false }; });
   })).then(function(results) {
     var filtered = results.filter(function(item) { return item.ok; }).map(function(item) { return item.stream; });
-    var label = providerLabel || "[Doom-addon]";
+    var label = providerLabel || "[Doom-addon-S]";
     if (filtered.length === 0) {
       console.log(label + " Seekable filter kept 0/" + streams.length + " streams; returning original streams as fallback");
       return streams;
@@ -551,7 +551,7 @@ function __doomFilterSeekableStreams(streams, providerLabel) {
   var __doomOriginalGetStreams = getStreams;
   var __doomProviderLabel = typeof PLUGIN_TAG !== "undefined"
     ? PLUGIN_TAG
-    : (typeof TAG !== "undefined" ? TAG : "[Doom-addon]");
+    : (typeof TAG !== "undefined" ? TAG : "[Doom-addon-S]");
 
   var __doomWrappedGetStreams = function() {
     return Promise.resolve(__doomOriginalGetStreams.apply(this, arguments))
@@ -611,16 +611,16 @@ function __doomNormalizeStream(rawStream) {
   if (typeof rawStream.videoSize === "number" && rawStream.videoSize > 0 && !behaviorHints.videoSize) {
     behaviorHints.videoSize = rawStream.videoSize;
   }
-  if (!behaviorHints.bingeGroup) {
-    var providerId = typeof PLUGIN_TAG !== "undefined" ? PLUGIN_TAG : (typeof TAG !== "undefined" ? TAG : "doom-addon");
+  if (!behaviorHints.bingeGroup || behaviorHints.bingeGroup === "doom-addon") {
+    var providerId = typeof PLUGIN_TAG !== "undefined" ? PLUGIN_TAG : (typeof TAG !== "undefined" ? TAG : "doom-addon-s");
     behaviorHints.bingeGroup = String(providerId).replace(/[^a-z0-9]+/gi, "-").toLowerCase();
   }
   if (!__doomLooksWebReady(targetUrl) || requestHeaders) behaviorHints.notWebReady = true;
   if (requestHeaders) behaviorHints.proxyHeaders = { request: requestHeaders };
 
-  var description = rawStream.description || rawStream.title || rawStream.name || "Doom-addon stream";
+  var description = rawStream.description || rawStream.title || rawStream.name || "Doom-addon-S stream";
   return {
-    name: rawStream.name || "Doom-addon",
+    name: rawStream.name || "Doom-addon-S",
     title: description,
     description: description,
     url: targetUrl,

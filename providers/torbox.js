@@ -1,7 +1,7 @@
 "use strict";
 
 const PROVIDER_NAME = "Torbox";
-const DEFAULT_MANIFEST_URL = "https://aiostreamsfortheweebsstable.midnightignite.me/stremio/4e02e39b-c022-4ce5-ad67-eeaca6b2fb5e/eyJpIjoid0k4WWxWZnQvaVhZNnkvTjZnN2sxUT09IiwiZSI6IlU4Z0tBYUp1WnQxaGJrQTgrT1FTS3Y0OWRmbG1wQVc1NzdLV1IzRGRBUWs9IiwidCI6ImEifQ/manifest.json";
+const DEFAULT_MANIFEST_URL = "https://aiostreamsfortheweebsstable.midnightignite.me/stremio/1d3081a9-8a56-4144-9e93-f878a2a491c4/eyJpIjoiellKWWVHMUxGUXdsQXpNUGxvbk8xZz09IiwiZSI6InQ4OWNlRmFPVytBTHBpa0VjeDVuSGRZYk1LMVB0YTdmVUt3QmN2NzNuUTQ9IiwidCI6ImEifQ/manifest.json";
 
 function configuredBaseUrl() {
   const raw = process.env.TORBOX_MANIFEST_URL || process.env.TORBOX_BASE_URL || DEFAULT_MANIFEST_URL;

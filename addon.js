@@ -15,6 +15,7 @@ const STREAM_FAST_PROBE_TIMEOUT_MS = Number(process.env.STREAM_FAST_PROBE_TIMEOU
 const MEDIAFUSION_PROBE_TIMEOUT_MS = Number(process.env.MEDIAFUSION_PROBE_TIMEOUT_MS || 8000);
 const QUALITY_SHARED_CACHE_SCOPE = "quality-shared";
 const STREAM_FIRST_BATCH_WAIT_MS = Number(process.env.STREAM_FIRST_BATCH_WAIT_MS || 16000);
+const STREAM_FULL_RESULT_WAIT_MS = Number(process.env.STREAM_FULL_RESULT_WAIT_MS || 55000);
 const QUALITY_TV_FAST_WAIT_MS = Number(process.env.QUALITY_TV_FAST_WAIT_MS || STREAM_FIRST_BATCH_WAIT_MS);
 const SHARED_PREWARM_SCOPES = new Set(["main", "quality-4k", "quality-1080", "quality-low"]);
 
@@ -1521,8 +1522,8 @@ function normalizeStream(rawStream, provider, mediaInfo) {
   if (detectedSize > 0 && !behaviorHints.videoSize) {
     behaviorHints.videoSize = detectedSize;
   }
-  if (!behaviorHints.bingeGroup) {
-    behaviorHints.bingeGroup = `doomp-${provider.id}-${String(quality || "auto").toLowerCase()}`;
+  if (!behaviorHints.bingeGroup || behaviorHints.bingeGroup === "doom-addon") {
+    behaviorHints.bingeGroup = `doom-addon-s-${provider.id}-${String(quality || "auto").toLowerCase()}`;
   }
   behaviorHints.doomProviderId = provider.id;
   if (!looksWebReady(targetUrl) || requestHeaders) {
@@ -1879,6 +1880,25 @@ function qualitySortFromStreams(streams, qualityBand) {
   return sortStreams(filterStreamsByQualityBand(streams.slice(), qualityBand), { qualityBand });
 }
 
+async function preferFullStreams(fullPromise, earlyPromise, waitMs, label) {
+  let fullResolved = false;
+  const watchedFullPromise = fullPromise.then((streams) => {
+    fullResolved = true;
+    return streams;
+  });
+
+  const timeoutStreams = delay(Math.max(0, waitMs)).then(async () => {
+    if (fullResolved) {
+      return watchedFullPromise;
+    }
+    const streams = await earlyPromise;
+    console.log(`[Stream full] ${label} still building after ${waitMs}ms; returning ${streams.length} early streams`);
+    return streams;
+  });
+
+  return Promise.race([watchedFullPromise, timeoutStreams]);
+}
+
 function getSharedMasterBuild(type, id, entries, requestContext = {}) {
   const sharedEntries = sharedProviderEntriesFor(entries);
   const sharedKey = sharedMasterCacheKey(type, id);
@@ -1956,8 +1976,18 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
     })
     : { fullPromise: Promise.resolve([]), fastPromise: Promise.resolve([]) };
 
-  const sharedStreamsPromise = sharedBuild.firstBatchPromise || sharedBuild.fullPromise;
-  const liveStreamsPromise = liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise;
+  const sharedStreamsPromise = preferFullStreams(
+    sharedBuild.fullPromise,
+    sharedBuild.firstBatchPromise || sharedBuild.fastPromise || sharedBuild.fullPromise,
+    STREAM_FULL_RESULT_WAIT_MS,
+    `${type}:${id}:${qualityBand}:shared`
+  );
+  const liveStreamsPromise = preferFullStreams(
+    liveBuild.fullPromise,
+    liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise,
+    STREAM_FULL_RESULT_WAIT_MS,
+    `${type}:${id}:${qualityBand}:live`
+  );
   const [sharedStreams, liveStreams] = await Promise.all([sharedStreamsPromise, liveStreamsPromise]);
   return qualitySortFromStreams([...sharedStreams, ...liveStreams], qualityBand);
 }
@@ -1992,8 +2022,18 @@ async function getStreams(type, id, options = {}) {
         fastWaitMs: QUALITY_TV_FAST_WAIT_MS
       })
       : { fullPromise: Promise.resolve([]), fastPromise: Promise.resolve([]) };
-    const sharedStreamsPromise = sharedBuild.firstBatchPromise || sharedBuild.fullPromise;
-    const liveStreamsPromise = liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise;
+    const sharedStreamsPromise = preferFullStreams(
+      sharedBuild.fullPromise,
+      sharedBuild.firstBatchPromise || sharedBuild.fastPromise || sharedBuild.fullPromise,
+      STREAM_FULL_RESULT_WAIT_MS,
+      `${type}:${id}:main:shared`
+    );
+    const liveStreamsPromise = preferFullStreams(
+      liveBuild.fullPromise,
+      liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise,
+      STREAM_FULL_RESULT_WAIT_MS,
+      `${type}:${id}:main:live`
+    );
     const [sharedStreams, liveStreams] = await Promise.all([sharedStreamsPromise, liveStreamsPromise]);
     return sortStreams([...sharedStreams, ...liveStreams]);
   }

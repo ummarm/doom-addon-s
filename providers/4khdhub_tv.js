@@ -47,7 +47,7 @@ var __async = (__this, __arguments, generator) => {
 var BASE_URL = "https://4khdhub.link";
 var TMDB_API_KEY = "439c478a771f35c05022f9feabcca01c";
 var USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
-var DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/Doom-addon/main/domains.json";
+var DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/doom-addon-s/main/domains.json";
 
 // src/4khdhub/utils.js
 var domainCache = { url: BASE_URL, ts: 0 };

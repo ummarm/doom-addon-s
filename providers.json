@@ -1,12 +1,12 @@
 {
-  "name": "Doom-addon",
-  "version": "2.2.3",
+  "name": "Doom-addon-S",
+  "version": "2.2.6",
   "scrapers": [
     {
       "id": "4khdhub",
       "name": "4KHDHub",
       "description": "4KHDHub direct links",
-      "version": "1.0.9",
+      "version": "1.0.11",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -48,7 +48,7 @@
       "id": "4khdhub_yoruix",
       "name": "4KHDHub Yoruix",
       "description": "Alternate 4KHDHub implementation synced from yoruix/nuvio-providers",
-      "version": "1.0.4",
+      "version": "1.0.6",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -69,7 +69,7 @@
       "id": "hdhub4u",
       "name": "HDHub4u",
       "description": "Direct links from HDHub4u with high-speed download support",
-      "version": "1.0.10",
+      "version": "1.0.12",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -159,7 +159,7 @@
       "id": "hdhub4u_yoruix",
       "name": "HDHub4u Yoruix",
       "description": "Alternate HDHub4u implementation synced from yoruix/nuvio-providers",
-      "version": "1.0.7",
+      "version": "1.0.9",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -182,7 +182,7 @@
       "id": "moviebox_yoruix",
       "name": "MovieBox Yoruix",
       "description": "Alternate MovieBox implementation synced from yoruix/nuvio-providers",
-      "version": "1.1.2",
+      "version": "1.1.4",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -204,7 +204,7 @@
       "id": "netmirror_yoruix",
       "name": "NetMirror Yoruix",
       "description": "Alternate NetMirror implementation synced from yoruix/nuvio-providers",
-      "version": "1.0.5",
+      "version": "1.0.7",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -227,7 +227,7 @@
       "id": "uhdmovies_yoruix",
       "name": "UHDMovies Yoruix",
       "description": "Alternate UHDMovies implementation synced from yoruix/nuvio-providers",
-      "version": "1.2.2",
+      "version": "1.2.4",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -250,7 +250,7 @@
       "id": "movieblast_yoruix",
       "name": "MovieBlast Yoruix",
       "description": "Alternate MovieBlast implementation synced from yoruix/nuvio-providers, filtered to Hindi streams",
-      "version": "1.0.2",
+      "version": "1.0.4",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -594,7 +594,7 @@
       "id": "hindmoviez",
       "name": "HindMoviez",
       "description": "HindMoviez - Hindi and English Movies and Series",
-      "version": "1.0.6",
+      "version": "1.0.8",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -617,7 +617,7 @@
       "id": "movieblast",
       "name": "MovieBlast",
       "description": "MovieBlast - Hindi, Tamil, Telugu and English Movies/Series with multi-quality streams",
-      "version": "1.0.3",
+      "version": "1.0.5",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -665,7 +665,7 @@
       "id": "moviebox",
       "name": "MovieBox",
       "description": "MovieBox - Worker-backed direct streams for movies and TV",
-      "version": "1.0.7",
+      "version": "1.0.9",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -688,7 +688,7 @@
       "id": "4khdhubnew",
       "name": "4KHDHub-NEW",
       "description": "4KHDHub-NEW streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "2.0.1",
+      "version": "2.0.3",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -733,7 +733,7 @@
       "id": "movies4u",
       "name": "Movies4u",
       "description": "Movies4u streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.3",
+      "version": "1.0.6",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -756,7 +756,7 @@
       "id": "uhdmovies",
       "name": "UHDMovies",
       "description": "UHDMovies streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.1",
+      "version": "1.0.3",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -779,7 +779,7 @@
       "id": "moviesdrive",
       "name": "MoviesDrive",
       "description": "MoviesDrive - Movies and TV shows with multiple streaming servers",
-      "version": "1.0.6",
+      "version": "1.0.8",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -802,7 +802,7 @@
       "id": "netmirror",
       "name": "NetMirror",
       "description": "NetMirror streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.2",
+      "version": "1.0.4",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -825,7 +825,7 @@
       "id": "peachify",
       "name": "Peachify",
       "description": "Peachify streams synced from D3adlyRocket/All-in-One-Nuvio, filtered to Hindi and English audio",
-      "version": "1.0.3",
+      "version": "1.0.5",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -848,7 +848,7 @@
       "id": "vegamovies",
       "name": "VegaMovies",
       "description": "VegaMovies streams synced from D3adlyRocket/All-in-One-Nuvio, filtered to Hindi/English 720p through 4K playable and seekable links",
-      "version": "2.0.2",
+      "version": "2.0.4",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -871,7 +871,7 @@
       "id": "vidlink",
       "name": "VidLink",
       "description": "VidLink streams synced from D3adlyRocket/All-in-One-Nuvio, filtered to 1080p playable and seekable links",
-      "version": "1.0.2",
+      "version": "1.0.4",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

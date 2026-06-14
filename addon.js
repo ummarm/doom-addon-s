@@ -2065,6 +2065,7 @@ function getQualityPriorityBuild(type, id, entries, requestContext = {}) {
   const priorityKey = qualityPriorityCacheKey(type, id);
   let priorityFullPromise = Promise.resolve([]);
   let priorityFastPromise = priorityFullPromise;
+  let priorityFirstBatchPromise = priorityFullPromise;
   let priorityQualityWaitPromise = priorityFullPromise;
   const cachedPriorityStreams = priorityEntries.length ? cachedStreams(priorityKey) : null;
 
@@ -2072,12 +2073,14 @@ function getQualityPriorityBuild(type, id, entries, requestContext = {}) {
     console.log(`[Stream cache] Hit for ${priorityKey} (${cachedPriorityStreams.length} streams)`);
     priorityFullPromise = Promise.resolve(cachedPriorityStreams);
     priorityFastPromise = priorityFullPromise;
+    priorityFirstBatchPromise = priorityFullPromise;
     priorityQualityWaitPromise = priorityFullPromise;
   } else if (priorityEntries.length > 0 && streamInflight.has(priorityKey)) {
     console.log(`[Stream cache] Joining priority quality build for ${priorityKey}`);
     const inflight = streamInflight.get(priorityKey);
     priorityFullPromise = inflight.fullPromise;
     priorityFastPromise = inflight.fastPromise || inflight.fullPromise;
+    priorityFirstBatchPromise = inflight.firstBatchPromise || priorityFastPromise;
     priorityQualityWaitPromise = inflight.qualityWaitPromise || priorityFastPromise;
   } else if (priorityEntries.length > 0) {
     const priorityBuild = finalizedBuild(type, id, priorityEntries, requestContext, {
@@ -2095,10 +2098,12 @@ function getQualityPriorityBuild(type, id, entries, requestContext = {}) {
         streamInflight.delete(priorityKey);
       });
     priorityFastPromise = priorityBuild.fastPromise;
+    priorityFirstBatchPromise = priorityBuild.firstBatchPromise || priorityFastPromise;
     priorityQualityWaitPromise = priorityBuild.qualityWaitPromise || priorityFastPromise;
     streamInflight.set(priorityKey, {
       fullPromise: priorityFullPromise,
       fastPromise: priorityFastPromise,
+      firstBatchPromise: priorityFirstBatchPromise,
       qualityWaitPromise: priorityQualityWaitPromise
     });
   }
@@ -2106,8 +2111,25 @@ function getQualityPriorityBuild(type, id, entries, requestContext = {}) {
   return {
     fullPromise: priorityFullPromise,
     fastPromise: priorityFastPromise,
+    firstBatchPromise: priorityFirstBatchPromise,
     qualityWaitPromise: priorityQualityWaitPromise
   };
+}
+
+async function preferPriorityQualityStreams(priorityBuild, label) {
+  const firstBatchPromise = priorityBuild.firstBatchPromise || priorityBuild.fastPromise || priorityBuild.fullPromise;
+  const firstBatch = await firstBatchPromise;
+  if (firstBatch.length > 0) {
+    console.log(`[Stream quality] Returning ${firstBatch.length} priority first-batch streams for ${label}`);
+    return firstBatch;
+  }
+
+  const latePriority = await Promise.race([
+    priorityBuild.qualityWaitPromise || priorityBuild.fastPromise || priorityBuild.fullPromise,
+    delay(Math.max(0, Math.min(15000, STREAM_QUALITY_SHARED_WAIT_MS))).then(() => [])
+  ]);
+  console.log(`[Stream quality] Returning ${latePriority.length} late priority streams for ${label}`);
+  return latePriority;
 }
 
 function prewarmSharedMaster(type, id, entries, requestContext = {}) {
@@ -2144,9 +2166,8 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
     sharedBuild.qualityWaitPromise || sharedBuild.fastPromise || sharedBuild.fullPromise,
     `${type}:${id}:${qualityBand}:shared`
   );
-  const priorityStreamsPromise = preferQualitySharedStreams(
-    priorityBuild.fullPromise,
-    priorityBuild.qualityWaitPromise || priorityBuild.fastPromise || priorityBuild.fullPromise,
+  const priorityStreamsPromise = preferPriorityQualityStreams(
+    priorityBuild,
     `${type}:${id}:${qualityBand}:priority`
   );
   const sharedQualityStreamsPromise = preferQualitySharedStreams(
@@ -2159,11 +2180,19 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
     liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise,
     `${type}:${id}:${qualityBand}:live`
   );
-  const [priorityStreams, sharedStreams, liveStreams] = await Promise.all([
+  const [priorityStreams, liveStreams] = await Promise.all([
     priorityStreamsPromise,
-    sharedQualityStreamsPromise,
     liveStreamsPromise
   ]);
+  const sharedStreams = priorityStreams.length < 4
+    ? await Promise.race([
+      sharedQualityStreamsPromise,
+      delay(3000).then(() => [])
+    ])
+    : [];
+  sharedQualityStreamsPromise.catch((error) => {
+    console.error(`[Stream quality] ${type}:${id}:${qualityBand}:shared: ${error.message || error}`);
+  });
   return qualitySortFromStreams([...priorityStreams, ...sharedStreams, ...liveStreams], qualityBand);
 }
 

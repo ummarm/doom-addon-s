@@ -17,6 +17,7 @@ const QUALITY_SHARED_CACHE_SCOPE = "quality-shared";
 const STREAM_FIRST_BATCH_WAIT_MS = Number(process.env.STREAM_FIRST_BATCH_WAIT_MS || 8000);
 const QUALITY_TV_FAST_WAIT_MS = Number(process.env.QUALITY_TV_FAST_WAIT_MS || STREAM_FIRST_BATCH_WAIT_MS);
 const STREAM_QUALITY_SHARED_WAIT_MS = Number(process.env.STREAM_QUALITY_SHARED_WAIT_MS || 25000);
+const STREAM_DIRECT_PLAYBACK_MODE = !/^(0|false|no)$/i.test(process.env.STREAM_DIRECT_PLAYBACK_MODE || "true");
 const SHARED_PREWARM_SCOPES = new Set(["main", "quality-4k", "quality-1080", "quality-low"]);
 
 const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "manifest.json"), "utf8"));
@@ -700,6 +701,9 @@ async function responseSample(response) {
 }
 
 function streamRequiresProbe(stream) {
+  if (stream && stream.behaviorHints && (stream.behaviorHints.notWebReady || stream.behaviorHints.proxyHeaders)) {
+    return true;
+  }
   return Boolean(stream.behaviorHints && [
     "4khdhubnew",
     "4khdhub_yoruix",
@@ -719,6 +723,13 @@ function streamRequiresProbe(stream) {
   ].includes(stream.behaviorHints.doomProviderId));
 }
 
+function cleanDirectPlaybackStream(stream) {
+  const behaviorHints = Object.assign({}, stream.behaviorHints || {});
+  delete behaviorHints.notWebReady;
+  delete behaviorHints.proxyHeaders;
+  return Object.assign({}, stream, { behaviorHints });
+}
+
 function isFastAcceptableStream(stream) {
   return (/^https:\/\//i.test(stream.url || "") || isDirectMediaUrl(stream.url || ""))
     && !isKnownClientBoundUrl(stream.url)
@@ -736,63 +747,93 @@ async function probeStream(stream, options = {}) {
   const parsed = options.parsed;
   const headers = streamRequestHeaders(stream);
   const isHls = looksLikeHls(stream.url);
-  const rangedHeaders = Object.assign({}, headers);
-  if (!isHls && !rangedHeaders.Range && !rangedHeaders.range) {
-    rangedHeaders.Range = "bytes=0-4095";
-  }
+  const hasHeaders = Object.keys(headers).length > 0;
 
-  const getResponse = await withTimeout(
-    fetch(stream.url, {
-      method: "GET",
-      headers: isHls ? headers : rangedHeaders,
-      redirect: "follow"
-    }),
-    timeoutMs,
-    `${stream.name} probe`
-  );
-  if (!responseFilenameMatchesRequestedMedia(getResponse, stream, mediaInfo, parsed)) {
-    return { ok: false };
-  }
-
-  const sample = await responseSample(getResponse);
-  const getProbe = responseProbeResult(getResponse, stream.url, sample, { requireSeekable });
-  if (getProbe.ok) {
-    if (requireSeekable && !isHls) {
-      const offset = hardSeekOffset(stream);
-      const seekHeaders = Object.assign({}, headers, { Range: `bytes=${offset}-${offset + 4095}` });
-      const seekResponse = await withTimeout(
-        fetch(stream.url, {
-          method: "GET",
-          headers: seekHeaders,
-          redirect: "follow"
-        }),
-        timeoutMs,
-        `${stream.name} seek probe`
-      );
-      const seekSample = await responseSample(seekResponse);
-      return hardSeekProbeResult(seekResponse, stream.url, seekSample, offset);
+  async function runProbe(activeHeaders, label, directReady) {
+    const rangedHeaders = Object.assign({}, activeHeaders);
+    if (!isHls && !rangedHeaders.Range && !rangedHeaders.range) {
+      rangedHeaders.Range = "bytes=0-4095";
     }
-    return getProbe;
+
+    const getResponse = await withTimeout(
+      fetch(stream.url, {
+        method: "GET",
+        headers: isHls ? activeHeaders : rangedHeaders,
+        redirect: "follow"
+      }),
+      timeoutMs,
+      `${stream.name} ${label} probe`
+    );
+    if (!responseFilenameMatchesRequestedMedia(getResponse, stream, mediaInfo, parsed)) {
+      return { ok: false };
+    }
+
+    const sample = await responseSample(getResponse);
+    const getProbe = responseProbeResult(getResponse, stream.url, sample, { requireSeekable });
+    if (getProbe.ok) {
+      if (requireSeekable && !isHls) {
+        const offset = hardSeekOffset(stream);
+        const seekHeaders = Object.assign({}, activeHeaders, { Range: `bytes=${offset}-${offset + 4095}` });
+        const seekResponse = await withTimeout(
+          fetch(stream.url, {
+            method: "GET",
+            headers: seekHeaders,
+            redirect: "follow"
+          }),
+          timeoutMs,
+          `${stream.name} ${label} seek probe`
+        );
+        const seekSample = await responseSample(seekResponse);
+        const seekProbe = hardSeekProbeResult(seekResponse, stream.url, seekSample, offset);
+        return Object.assign({}, seekProbe, { directReady });
+      }
+      return Object.assign({}, getProbe, { directReady });
+    }
+
+    if (requireSeekable) {
+      return { ok: false };
+    }
+
+    const headResponse = await withTimeout(
+      fetch(stream.url, {
+        method: "HEAD",
+        headers: activeHeaders,
+        redirect: "follow"
+      }),
+      timeoutMs,
+      `${stream.name} ${label} head probe`
+    );
+    if (!responseFilenameMatchesRequestedMedia(headResponse, stream, mediaInfo, parsed)) {
+      return { ok: false };
+    }
+
+    return Object.assign(
+      {},
+      responseProbeResult(headResponse, stream.url, {}, { requireSeekable }),
+      { directReady }
+    );
   }
 
-  if (requireSeekable) {
-    return { ok: false };
+  let directResult = null;
+  if (STREAM_DIRECT_PLAYBACK_MODE) {
+    try {
+      directResult = await runProbe({}, "direct", true);
+      if (directResult.ok) {
+        return directResult;
+      }
+    } catch (error) {
+      if (!hasHeaders) {
+        throw error;
+      }
+      // Header-assisted fallback below decides whether the stream is playable at all.
+    }
   }
 
-  const headResponse = await withTimeout(
-    fetch(stream.url, {
-      method: "HEAD",
-      headers,
-      redirect: "follow"
-    }),
-    timeoutMs,
-    `${stream.name} head probe`
-  );
-  if (!responseFilenameMatchesRequestedMedia(headResponse, stream, mediaInfo, parsed)) {
-    return { ok: false };
+  if (hasHeaders) {
+    return runProbe(headers, "header", false);
   }
 
-  return responseProbeResult(headResponse, stream.url, {}, { requireSeekable });
+  return directResult || runProbe(headers, "direct", true);
 }
 
 async function filterPlayableStreams(streams, options = {}) {
@@ -821,7 +862,11 @@ async function filterPlayableStreams(streams, options = {}) {
           parsed: options.parsed
         });
         if (probe.ok) {
-          filtered.push(stream);
+          if (STREAM_DIRECT_PLAYBACK_MODE && probe.directReady === false) {
+            console.log(`[Stream probe] Rejected header-only source: ${stream.name}`);
+          } else {
+            filtered.push(STREAM_DIRECT_PLAYBACK_MODE ? cleanDirectPlaybackStream(stream) : stream);
+          }
         } else {
           console.log(`[Stream probe] Rejected unplayable source: ${stream.name}`);
         }

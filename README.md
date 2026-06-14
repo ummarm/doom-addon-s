@@ -124,6 +124,14 @@ results, so the first Stremio response is less likely to be Torbox-only:
 STREAM_QUALITY_SHARED_WAIT_MS=25000 npm start
 ```
 
+Direct playback mode keeps Stremio-facing streams as direct URLs after they pass
+the add-on's playable/seekable probe. Header-only links are rejected instead of
+being exposed as direct links:
+
+```sh
+STREAM_DIRECT_PLAYBACK_MODE=true npm start
+```
+
 Docker exposes this project on host port `7002` by default, while the container
 continues to listen on port `7000` for the Cloudflare tunnel:
 

@@ -12,7 +12,7 @@
     "webstreamrmbg": "https://github.com/newman2x/WebStreamrMBG"
   },
   "domainSources": {
-    "doomAddon": "https://raw.githubusercontent.com/ummarm/Doom-addon/main/domains.json",
+    "doomAddon": "https://raw.githubusercontent.com/ummarm/doom-addon-s/main/domains.json",
     "upstream": "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/domains.json"
   }
 }

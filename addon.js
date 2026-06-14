@@ -127,14 +127,14 @@ const addonManifests = Object.fromEntries(
       id: `${manifest.id}.${slug}`,
       name: group.name,
       description: slug === "mediafusion"
-        ? `${group.name} provider group for Doom-addon. Passes MediaFusion streams through with Hindi/English detection, blocked source-tag filtering, cached/playable placeholder rejection, and Hindi-first quality/size sorting.`
+        ? `${group.name} provider group for Doom-addon-S. Passes MediaFusion streams through with Hindi/English detection, blocked source-tag filtering, cached/playable placeholder rejection, and Hindi-first quality/size sorting.`
         : slug === "aiostreams"
-          ? `${group.name} provider group for Doom-addon. Passes AIOStreams streams through without Umbrella formatting or extra filtering.`
+          ? `${group.name} provider group for Doom-addon-S. Passes AIOStreams streams through without Umbrella formatting or extra filtering.`
           : slug === "torbox"
-            ? `${group.name} provider group for Doom-addon. Passes Torbox streams through unchanged, then applies only sorting and quality-tab filtering.`
+            ? `${group.name} provider group for Doom-addon-S. Passes Torbox streams through unchanged, then applies only sorting and quality-tab filtering.`
           : group.qualityBand
-            ? `${group.name} quality group for Doom-addon. Uses all enabled providers and keeps the main add-on rules, with streams routed by quality.`
-            : `${group.name} provider group for Doom-addon. Uses the same Umbrella formatting, filtering, sorting, and playable checks as the main add-on.`
+            ? `${group.name} quality group for Doom-addon-S. Uses all enabled providers and keeps the main add-on rules, with streams routed by quality.`
+            : `${group.name} provider group for Doom-addon-S. Uses the same Umbrella formatting, filtering, sorting, and playable checks as the main add-on.`
     })
   ])
 );
@@ -337,7 +337,7 @@ async function resolveTmdbId(imdbId, mediaType) {
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
-      "User-Agent": "Doom-addon Stremio Addon"
+      "User-Agent": "Doom-addon-S Stremio Addon"
     }
   });
 
@@ -358,7 +358,7 @@ async function resolveMediaInfo(tmdbId, mediaType) {
   const response = await fetch(url, {
     headers: {
       Accept: "application/json",
-      "User-Agent": "Doom-addon Stremio Addon"
+      "User-Agent": "Doom-addon-S Stremio Addon"
     }
   });
 

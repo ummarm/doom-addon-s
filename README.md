@@ -1,6 +1,6 @@
-# Doom-addon
+# Doom-addon-S
 
-Doom-addon is a Stremio stream add-on that wraps providers from the original
+Doom-addon-S is a Stremio stream add-on that wraps providers from the original
 upstream sources directly:
 
 - `4KHDHub`
@@ -30,7 +30,7 @@ every enabled provider, merges the results, and returns Stremio stream objects.
 ## Files
 
 - `manifest.json` - Stremio add-on manifest
-- `providers.json` - Doom-addon provider registry and provider versions
+- `providers.json` - Doom-addon-S provider registry and provider versions
 - `addon.js` - Stremio request adapter around the provider modules
 - `server.js` - HTTP server for Stremio
 - `providers/4khdhub.js`
@@ -80,6 +80,15 @@ http://localhost:7000/addons/aiostreams/manifest.json   # Umbrella AIO
 http://localhost:7000/addons/quality-4k/manifest.json   # Umbrella 4K
 http://localhost:7000/addons/quality-1080/manifest.json # Umbrella 1080
 http://localhost:7000/addons/quality-low/manifest.json  # Umbrella Low
+```
+
+Hosted Stremio install URLs for this separated repo are:
+
+```text
+https://doom-addon-s.zxflix.com/manifest.json
+https://doom-addon-s.zxflix.com/addons/quality-4k/manifest.json
+https://doom-addon-s.zxflix.com/addons/quality-1080/manifest.json
+https://doom-addon-s.zxflix.com/addons/quality-low/manifest.json
 ```
 
 You can change the port with:
@@ -165,7 +174,7 @@ This add-on is dynamic, so the raw GitHub URL is no longer enough for Stremio.
 Deploy the repo to a Node host, then install the hosted manifest URL:
 
 ```text
-https://<your-host>/manifest.json
+https://doom-addon-s.zxflix.com/manifest.json
 ```
 
 The stream endpoint shape is:
@@ -206,7 +215,7 @@ The stream endpoint shape is:
 - `NetMirror`, `Peachify`, `MovieBox`, and `MoviesDrive` are synced from
   `D3adlyRocket/All-in-One-Nuvio`. Peachify results are filtered to Hindi and
   English audio only.
-- Provider results keep Doom-addon's working-and-seekable stream validation
+- Provider results keep Doom-addon-S's working-and-seekable stream validation
   before results are returned to Stremio.
 - `Umbrella M`, `Umbrella Y`, `Umbrella D`, and `Umbrella F` are separate
   installable provider-group manifests that reuse the same formatter, media
@@ -218,10 +227,10 @@ The stream endpoint shape is:
 This repo includes a GitHub Actions workflow at
 `.github/workflows/upstream-sync.yml`.
 
-- Doom-addon no longer syncs from Doom-plug.
+- Doom-addon-S no longer syncs from Doom-plug.
 - The workflow checks the original upstream sources automatically every day and
   applies real sync work according to `upstreams.json`.
-- If a tracked upstream provider changes, the workflow updates Doom-addon's
+- If a tracked upstream provider changes, the workflow updates Doom-addon-S's
   provider file, retargets domain lookups to this repo's `domains.json`, updates
   `providers.json`, `manifest.json`, and `package.json`, and commits the update
   directly to `main`.
@@ -230,11 +239,11 @@ This repo includes a GitHub Actions workflow at
 ## Windows auto-update
 
 On the Windows host, schedule `scripts/update-windows.ps1` to keep the running
-Docker container current with GitHub. This pulls committed Doom-addon changes
+Docker container current with GitHub. This pulls committed Doom-addon-S changes
 after the GitHub workflow has synced and committed them.
 
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File C:\server\Doom-addon\scripts\update-windows.ps1
+powershell.exe -ExecutionPolicy Bypass -File C:\server\Doom-addon-S\scripts\update-windows.ps1
 ```
 
 Tracked upstream provider files:

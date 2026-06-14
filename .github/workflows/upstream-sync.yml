@@ -44,6 +44,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A manifest.json package.json providers.json providers domains.json upstreams.json scripts/sync_upstream.py
           if ! git diff --cached --quiet; then
-            git commit -m "chore: sync Doom-addon providers from original upstreams"
+            git commit -m "chore: sync Doom-addon-S providers from original upstreams"
             git push
           fi

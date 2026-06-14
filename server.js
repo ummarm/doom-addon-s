@@ -205,7 +205,7 @@ async function resolveAioHandoffUrl(playbackUrl) {
       headers: {
         "Accept": "*/*",
         "Range": "bytes=0-1",
-        "User-Agent": "Doom-addon/1.0"
+        "User-Agent": "Doom-addon-S/1.0"
       },
       redirect: "manual"
     });
@@ -281,7 +281,7 @@ const server = http.createServer(async (request, response) => {
         response,
         200,
         [
-          "Doom-addon Stremio add-on is running.",
+          "Doom-addon-S Stremio add-on is running.",
           `Install URL: ${url.origin}/manifest.json`,
           `Umbrella M: ${url.origin}/addons/murph/manifest.json`,
           `Umbrella Y: ${url.origin}/addons/yoruix/manifest.json`,
@@ -349,5 +349,5 @@ const server = http.createServer(async (request, response) => {
 
 server.listen(PORT, HOST, () => {
   const displayHost = HOST === "0.0.0.0" ? "localhost" : HOST;
-  console.log(`Doom-addon Stremio add-on listening on http://${displayHost}:${PORT}`);
+  console.log(`Doom-addon-S Stremio add-on listening on http://${displayHost}:${PORT}`);
 });

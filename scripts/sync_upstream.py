@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Sync Doom-addon providers directly from the original upstream sources.
+"""Sync Doom-addon-S providers directly from the original upstream sources.
 
-Doom-addon no longer treats Doom-plug as an upstream. Provider source files are
-checked against the original projects, then Doom-addon-specific patches are
+Doom-addon-S no longer treats Doom-plug as an upstream. Provider source files are
+checked against the original projects, then Doom-addon-S-specific patches are
 applied for hosted Stremio use.
 """
 
@@ -38,9 +38,9 @@ MURPH_MANIFEST_URL = "https://badboysxs-morpheus.hf.space/manifest.json"
 WEBSTREAMRMBG_REPOSITORY_URL = "https://github.com/newman2x/WebStreamrMBG"
 WEBSTREAMRMBG_MANIFEST_URL = "https://87d6a6ef6b58-webstreamrmbg.baby-beamup.club/manifest.json"
 TORBOX_MANIFEST_URL = "https://aiostreamsfortheweebsstable.midnightignite.me/stremio/4e02e39b-c022-4ce5-ad67-eeaca6b2fb5e/eyJpIjoid0k4WWxWZnQvaVhZNnkvTjZnN2sxUT09IiwiZSI6IlU4Z0tBYUp1WnQxaGJrQTgrT1FTS3Y0OWRmbG1wQVc1NzdLV1IzRGRBUWs9IiwidCI6ImEifQ/manifest.json"
-ADDON_DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/Doom-addon/main/domains.json"
+ADDON_DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/doom-addon-s/main/domains.json"
 UPSTREAM_DOMAINS_URL = "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/domains.json"
-USER_AGENT = "Doom-addon direct upstream sync"
+USER_AGENT = "Doom-addon-S direct upstream sync"
 DEFAULT_UPSTREAMS = {
     "syncCadenceDays": CADENCE_DAYS,
     "manifests": {
@@ -200,7 +200,7 @@ function __doomFilterSeekableStreams(streams, providerLabel) {
       .catch(function() { return { stream: stream, ok: false }; });
   })).then(function(results) {
     var filtered = results.filter(function(item) { return item.ok; }).map(function(item) { return item.stream; });
-    var label = providerLabel || "[Doom-addon]";
+    var label = providerLabel || "[Doom-addon-S]";
     if (filtered.length === 0) {
       console.log(label + " Seekable filter kept 0/" + streams.length + " streams; returning original streams as fallback");
       return streams;
@@ -218,7 +218,7 @@ function __doomFilterSeekableStreams(streams, providerLabel) {
   var __doomOriginalGetStreams = getStreams;
   var __doomProviderLabel = typeof PLUGIN_TAG !== "undefined"
     ? PLUGIN_TAG
-    : (typeof TAG !== "undefined" ? TAG : "[Doom-addon]");
+    : (typeof TAG !== "undefined" ? TAG : "[Doom-addon-S]");
 
   var __doomWrappedGetStreams = function() {
     return Promise.resolve(__doomOriginalGetStreams.apply(this, arguments))
@@ -678,9 +678,9 @@ function __doomNormalizeStream(rawStream) {
   if (!__doomLooksWebReady(targetUrl) || requestHeaders) behaviorHints.notWebReady = true;
   if (requestHeaders) behaviorHints.proxyHeaders = { request: requestHeaders };
 
-  var description = rawStream.description || rawStream.title || rawStream.name || "Doom-addon stream";
+  var description = rawStream.description || rawStream.title || rawStream.name || "Doom-addon-S stream";
   return {
-    name: rawStream.name || "Doom-addon",
+    name: rawStream.name || "Doom-addon-S",
     title: description,
     description: description,
     url: targetUrl,
@@ -767,10 +767,10 @@ PROVIDERS = (
 MURPH_WRAPPER_IDS = {"4khdhub_murph", "hdhub4u_murph", "moviebox_murph", "movies4u_murph"}
 PAUSED_UPSTREAM_PROVIDER_IDS = {"streamflix"}
 LOCAL_VARIANT_UPSTREAM_PATHS = {
-    # D3 does not publish a separate 4khdhub-tv provider file. Keep Doom-addon's
+    # D3 does not publish a separate 4khdhub-tv provider file. Keep Doom-addon-S's
     # local variant, but verify the upstream family file still exists each sync.
     "4khdhubtv": "providers/4khdhub.js",
-    # MovieBox-Hindi is a Doom-addon variant layered on the D3 MovieBox family.
+    # MovieBox-Hindi is a Doom-addon-S variant layered on the D3 MovieBox family.
     "movieboxhindi": "providers/moviebox.js",
 }
 
@@ -934,7 +934,7 @@ def patch_domain_source(text: str) -> str:
         count=1,
     )
     if count != 1:
-        raise RuntimeError("Could not retarget DOMAINS_URL to Doom-addon domains.json")
+        raise RuntimeError("Could not retarget DOMAINS_URL to Doom-addon-S domains.json")
     return updated
 
 
@@ -946,7 +946,7 @@ def patch_vegamovies_domain_source(text: str) -> str:
         count=1,
     )
     if count != 1:
-        raise RuntimeError("Could not retarget DOMAINS_JSON_URL to Doom-addon domains.json")
+        raise RuntimeError("Could not retarget DOMAINS_JSON_URL to Doom-addon-S domains.json")
     return updated
 
 
@@ -959,7 +959,7 @@ def patch_moviesdrive_domain_source(text: str) -> str:
             count=1,
         )
         if count != 1:
-            raise RuntimeError("Could not retarget DOMAIN_JSON_URL to Doom-addon domains.json")
+            raise RuntimeError("Could not retarget DOMAIN_JSON_URL to Doom-addon-S domains.json")
         old_block = """if (data && data[PROVIDER_KEY] && data[PROVIDER_KEY].url) {
           moviesDriveDomain = data[PROVIDER_KEY].url.replace(/\\/$/, "");
           domainCacheTimestamp = now;
@@ -976,7 +976,7 @@ def patch_moviesdrive_domain_source(text: str) -> str:
         }
 """
         if old_block not in updated:
-            raise RuntimeError("Could not adapt MoviesDrive domain reader to Doom-addon domains.json")
+            raise RuntimeError("Could not adapt MoviesDrive domain reader to Doom-addon-S domains.json")
         return updated.replace(old_block, new_block, 1)
 
     if "DOMAINS_URL" in text:
@@ -1216,11 +1216,11 @@ def provider_names(registry: dict) -> list[str]:
 
 
 def addon_description(names: list[str]) -> str:
-    return "A Stremio stream add-on wrapping the Doom-addon provider set: " + ", ".join(names) + "."
+    return "A Stremio stream add-on wrapping the Doom-addon-S provider set: " + ", ".join(names) + "."
 
 
 def package_description(names: list[str]) -> str:
-    return "Doom-addon: a Stremio stream add-on with " + ", ".join(names) + "."
+    return "Doom-addon-S: a Stremio stream add-on with " + ", ".join(names) + "."
 
 
 def update_versions(changed_ids: set[str]) -> tuple[bool, list[str], dict]:
@@ -1231,7 +1231,7 @@ def update_versions(changed_ids: set[str]) -> tuple[bool, list[str], dict]:
     changes: list[str] = []
     old_repo_version = registry["version"]
     registry["version"] = bump_patch(old_repo_version)
-    changes.append(f"Doom-addon providers: `{old_repo_version}` -> `{registry['version']}`")
+    changes.append(f"Doom-addon-S providers: `{old_repo_version}` -> `{registry['version']}`")
 
     for scraper in registry.get("scrapers", []):
         if scraper.get("id") not in changed_ids:
@@ -1247,7 +1247,9 @@ def update_stremio_manifest(registry: dict) -> bool:
     stremio_manifest = json.loads(STREMIO_MANIFEST_PATH.read_text(encoding="utf-8"))
     names = provider_names(registry)
     stremio_manifest["version"] = registry["version"]
-    stremio_manifest["name"] = "Doom-addon"
+    stremio_manifest["id"] = "community.doomplug.s"
+    stremio_manifest["name"] = "Doom-addon-S"
+    stremio_manifest["logo"] = "https://doom-addon-s.zxflix.com/assets/umbrella-icon.png"
     stremio_manifest["description"] = addon_description(names)
     return write_json_if_changed(STREMIO_MANIFEST_PATH, stremio_manifest)
 
@@ -1313,7 +1315,7 @@ def main() -> int:
         write_output("changed", "false")
         write_output("skipped", "true")
         write_summary([
-            "## Doom-addon direct upstream sync",
+            "## Doom-addon-S direct upstream sync",
             "",
             f"Skipped on `{today_utc.isoformat()}` UTC because the {cadence_days}-day cadence is anchored to `{ANCHOR_DATE.isoformat()}`.",
         ])
@@ -1342,7 +1344,7 @@ def main() -> int:
             except Exception as exc:
                 upstream_tree_paths = []
                 warning = (
-                    f"Manifest discovery failed for `{provider.scraper_id}` from `{manifest_url}`, so Doom-addon "
+                    f"Manifest discovery failed for `{provider.scraper_id}` from `{manifest_url}`, so Doom-addon-S "
                     f"fell back to static paths: {exc}"
                 )
                 sync_warnings.append(warning)
@@ -1355,7 +1357,7 @@ def main() -> int:
                 except Exception as tree_exc:
                     upstream_tree_paths = []
                     tree_warning = (
-                        f"Upstream tree fallback also failed for `{provider.scraper_id}`, so Doom-addon "
+                        f"Upstream tree fallback also failed for `{provider.scraper_id}`, so Doom-addon-S "
                         f"fell back to static paths: {tree_exc}"
                     )
                     sync_warnings.append(tree_warning)
@@ -1369,7 +1371,7 @@ def main() -> int:
             except Exception as exc:
                 upstream_tree_paths = []
                 warning = (
-                    f"Upstream tree discovery failed for `{provider.scraper_id}`, so Doom-addon "
+                    f"Upstream tree discovery failed for `{provider.scraper_id}`, so Doom-addon-S "
                     f"fell back to static paths: {exc}"
                 )
                 sync_warnings.append(warning)
@@ -1396,7 +1398,7 @@ def main() -> int:
                 try:
                     fetch_text(f"{provider.upstream_raw_base}/{variant_path}")
                     print(
-                        f"Info: `{provider.scraper_id}` is an intentional Doom-addon local variant "
+                        f"Info: `{provider.scraper_id}` is an intentional Doom-addon-S local variant "
                         f"tracked against upstream `{variant_path}`."
                     )
                     continue
@@ -1415,7 +1417,7 @@ def main() -> int:
         try:
             transformed_text = transform_source(provider, upstream_text)
         except RuntimeError as exc:
-            warning = f"`{provider.scraper_id}` was skipped because Doom-addon patching failed: {exc}"
+            warning = f"`{provider.scraper_id}` was skipped because Doom-addon-S patching failed: {exc}"
             sync_warnings.append(warning)
             print(f"Warning: {warning}")
             continue
@@ -1456,7 +1458,7 @@ def main() -> int:
     write_output("changed_scrapers", changed_names)
 
     summary_lines = [
-        "## Doom-addon direct upstream sync",
+        "## Doom-addon-S direct upstream sync",
         "",
         f"Checked original upstreams on `{today_utc.isoformat()}` UTC.",
         f"Changed: `{'true' if changed else 'false'}`",

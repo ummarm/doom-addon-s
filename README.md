@@ -191,6 +191,61 @@ The stream endpoint shape is:
 /addons/quality-low/stream/movie/tt0111161.json
 ```
 
+## Windows 11 Docker + Cloudflare Tunnel
+
+This repo includes a Docker Compose setup for a separate `doom-addon-s`
+container and a separate `doom-addon-s-tunnel` Cloudflare Tunnel container.
+
+1. Clone the repo on the Windows host:
+
+```powershell
+cd C:\server
+git clone https://github.com/ummarm/doom-addon-s.git Doom-addon-S
+cd C:\server\Doom-addon-S
+```
+
+2. In Cloudflare Zero Trust, create a Cloudflare Tunnel for this repo. Add a
+public hostname:
+
+```text
+Subdomain: doom-addon-s
+Domain: zxflix.com
+Type: HTTP
+URL: http://doom-addon-s:7000
+```
+
+3. Copy the tunnel token from Cloudflare and create `.env`:
+
+```powershell
+Copy-Item .env.example .env
+notepad .env
+```
+
+Set:
+
+```text
+CLOUDFLARED_TOKEN=your-real-token-from-cloudflare
+```
+
+4. Start the app and tunnel:
+
+```powershell
+docker compose up -d --build
+```
+
+5. Check the public URLs:
+
+```text
+https://doom-addon-s.zxflix.com/manifest.json
+https://doom-addon-s.zxflix.com/addons/quality-4k/manifest.json
+https://doom-addon-s.zxflix.com/addons/quality-1080/manifest.json
+https://doom-addon-s.zxflix.com/addons/quality-low/manifest.json
+```
+
+If your original add-on already uses a Cloudflare Tunnel, keep it as-is and
+create/use a different tunnel token for `doom-addon-s`. Do not point the new
+hostname at the old container.
+
 ## Notes
 
 - Provider files sync directly from the original upstream sources:
@@ -244,6 +299,20 @@ after the GitHub workflow has synced and committed them.
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File C:\server\Doom-addon-S\scripts\update-windows.ps1
+```
+
+To run that update automatically every 10 hours, open PowerShell as
+Administrator and run:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File C:\server\Doom-addon-S\scripts\register-update-task.ps1
+```
+
+The task runs `git pull --ff-only` and then rebuilds/restarts the Docker Compose
+stack with:
+
+```powershell
+docker compose up -d --build --remove-orphans
 ```
 
 Tracked upstream provider files:

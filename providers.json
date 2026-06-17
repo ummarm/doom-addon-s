@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon-S",
-  "version": "2.2.14",
+  "version": "2.2.15",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -825,7 +825,7 @@
       "id": "peachify",
       "name": "Peachify",
       "description": "Peachify streams synced from D3adlyRocket/All-in-One-Nuvio, filtered to Hindi and English audio",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

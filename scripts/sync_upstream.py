@@ -37,7 +37,8 @@ FLIX_STREAMS_MANIFEST_URL = "https://flixnest.app/flix-streams/u/6p9xzp78nunz/ma
 MURPH_MANIFEST_URL = "https://badboysxs-morpheus.hf.space/manifest.json"
 WEBSTREAMRMBG_REPOSITORY_URL = "https://github.com/newman2x/WebStreamrMBG"
 WEBSTREAMRMBG_MANIFEST_URL = "https://87d6a6ef6b58-webstreamrmbg.baby-beamup.club/manifest.json"
-TORBOX_MANIFEST_URL = "https://aiostreamsfortheweebsstable.midnightignite.me/stremio/1d3081a9-8a56-4144-9e93-f878a2a491c4/eyJpIjoiellKWWVHMUxGUXdsQXpNUGxvbk8xZz09IiwiZSI6InQ4OWNlRmFPVytBTHBpa0VjeDVuSGRZYk1LMVB0YTdmVUt3QmN2NzNuUTQ9IiwidCI6ImEifQ/manifest.json"
+TORBOX_MANIFEST_URL = "https://aiostreams.fortheweak.cloud/stremio/0f2abcc3-6334-4dc1-8852-4f1f54ee0ede/eyJpIjoiQndmYWI3aEpnUVpRZWtpZzhxaWNqdz09IiwiZSI6ImkySnV3U1p6cEtYSzZQWS9keStNYTFXdHdHdzRGMHpNRGlYTUQwRUxCWXM9IiwidCI6ImEifQ/manifest.json"
+TORBOX_BACKUP_MANIFEST_URL = "https://aiostreamsfortheweebsstable.midnightignite.me/stremio/1d3081a9-8a56-4144-9e93-f878a2a491c4/eyJpIjoiellKWWVHMUxGUXdsQXpNUGxvbk8xZz09IiwiZSI6InQ4OWNlRmFPVytBTHBpa0VjeDVuSGRZYk1LMVB0YTdmVUt3QmN2NzNuUTQ9IiwidCI6ImEifQ/manifest.json"
 ADDON_DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/doom-addon-s/main/domains.json"
 UPSTREAM_DOMAINS_URL = "https://raw.githubusercontent.com/phisher98/TVVVV/refs/heads/main/domains.json"
 USER_AGENT = "Doom-addon-S direct upstream sync"
@@ -50,6 +51,7 @@ DEFAULT_UPSTREAMS = {
         "murph": MURPH_MANIFEST_URL,
         "webstreamrmbg": WEBSTREAMRMBG_MANIFEST_URL,
         "torbox": TORBOX_MANIFEST_URL,
+        "torboxBackup": TORBOX_BACKUP_MANIFEST_URL,
     },
     "repositories": {
         "webstreamrmbg": WEBSTREAMRMBG_REPOSITORY_URL,
@@ -752,6 +754,9 @@ PROVIDERS = (
     Provider("netmirror", ("providers/netmirror.js",), "providers/netmirror.js", ("netmirror",)),
     Provider("peachify", ("providers/peachify.js",), "providers/peachify.js", ("peachify",)),
     Provider("vegamovies", ("providers/vegamovies.js",), "providers/vegamovies.js", ("vegamovies", "hubcloud")),
+    Provider("cinefreak", ("providers/cinefreak.js",), "providers/cinefreak.js", ("cinefreak",)),
+    Provider("fibwatch", ("providers/fibwatch.js",), "providers/fibwatch.js", ("fibwatch",)),
+    Provider("playimdb", ("providers/playimdb.js",), "providers/playimdb.js", ("playimdb",)),
     Provider("vidlink", ("providers/vidlink.js",), "providers/vidlink.js", ("vidlink",)),
     Provider("uhdmovies", ("providers/uhdmovies.js",), "providers/uhdmovies.js", ("uhdmovies",)),
     Provider("4khdhubnew", ("providers/4khdhubnew.js",), "providers/4khdhubnew.js", ("4khdhubnew", "4khdhub", "hubcloud")),

@@ -150,8 +150,8 @@ FLIX_STREAMS_MANIFEST_URL=https://flixnest.app/flix-streams/u/<token>/manifest.j
 The Flixnest group currently wraps Emby/Media Lib, MkvCinemas, LotusVault,
 ArchiveVault, UHDMovies, and any newly enabled Flix-Streams results that are
 not already covered by a named wrapper.
-VegaMovies stays registered but disabled because those links were previously
-marked unreliable.
+D3adlyRocket direct providers include the enabled upstream set from the checked
+manifest, including CineFreak, FibWatch, and PlayIMDb.
 
 MediaFusion uses the configured MediaFusion manifest URL. The checked-in default
 can be overridden if the configured add-on URL changes:

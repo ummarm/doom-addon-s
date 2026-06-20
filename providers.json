@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon-S",
-  "version": "2.2.18",
+  "version": "2.2.19",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -871,7 +871,7 @@
       "id": "playimdb",
       "name": "PlayIMDb",
       "description": "PlayIMDb streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "2.0.0",
+      "version": "2.0.1",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -894,7 +894,7 @@
       "id": "fibwatch",
       "name": "FibWatch",
       "description": "FibWatch streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -916,7 +916,7 @@
       "id": "cinefreak",
       "name": "CineFreak",
       "description": "CineFreak streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

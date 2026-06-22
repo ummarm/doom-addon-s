@@ -1,12 +1,12 @@
 {
   "name": "Doom-addon-S",
-  "version": "2.2.19",
+  "version": "2.2.20",
   "scrapers": [
     {
       "id": "4khdhub",
       "name": "4KHDHub",
       "description": "4KHDHub direct links",
-      "version": "1.0.11",
+      "version": "1.0.12",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

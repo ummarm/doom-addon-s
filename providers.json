@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon-S",
-  "version": "2.2.23",
+  "version": "2.2.24",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -756,7 +756,7 @@
       "id": "uhdmovies",
       "name": "UHDMovies",
       "description": "UHDMovies streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.4",
+      "version": "1.0.5",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

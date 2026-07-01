@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon-S",
-  "version": "2.2.25",
+  "version": "2.2.26",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -665,7 +665,7 @@
       "id": "moviebox",
       "name": "MovieBox",
       "description": "MovieBox - Worker-backed direct streams for movies and TV",
-      "version": "1.0.10",
+      "version": "1.0.11",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

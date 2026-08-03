@@ -1955,8 +1955,57 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
   const qualityWaitPromise = options.qualityWaitMs
     ? makeTimedPromise(false, options.qualityWaitMs)
     : null;
+  const firstNonEmptyPromise = (waitMs) => buildStatePromise
+    .then(async (state) => {
+      if (!state) {
+        return [];
+      }
 
-  return { fullPromise, fastPromise, firstBatchPromise, qualityWaitPromise };
+      let done = false;
+      state.donePromise.finally(() => {
+        done = true;
+      });
+      const deadline = Date.now() + Math.max(0, waitMs || STREAM_QUALITY_SHARED_WAIT_MS);
+
+      while (Date.now() <= deadline) {
+        const providerResults = state.results.filter(Boolean);
+        if (providerResults.length > 0) {
+          const streams = await finalizeStreams(providerResults, {
+            logFailures: false,
+            mediaInfo: state.mediaInfo,
+            parsed: state.parsed,
+            providerEntries: entries,
+            probeOnlyRequired: true,
+            probeTimeoutMs: options.probeTimeoutMs || options.fastProbeTimeoutMs || STREAM_FAST_PROBE_TIMEOUT_MS,
+            qualityBand: options.qualityBand || ""
+          });
+          if (streams.length > 0) {
+            return streams;
+          }
+        }
+
+        if (done) {
+          break;
+        }
+
+        const remainingMs = deadline - Date.now();
+        if (remainingMs <= 0) {
+          break;
+        }
+        await Promise.race([
+          state.donePromise.catch(() => null),
+          delay(Math.min(500, remainingMs))
+        ]);
+      }
+
+      return fullPromise;
+    })
+    .catch((error) => {
+      console.error(`[Stream fallback] ${options.cacheKey || `${type}:${id}`}: ${error.message || error}`);
+      return [];
+    });
+
+  return { fullPromise, fastPromise, firstBatchPromise, qualityWaitPromise, firstNonEmptyPromise };
 }
 
 function qualitySortFromStreams(streams, qualityBand) {
@@ -2141,6 +2190,43 @@ async function preferPriorityQualityStreams(priorityBuild, label) {
   return latePriority;
 }
 
+async function firstNonEmptyQualityFallback(promises, label, waitMs) {
+  const pending = new Set(promises.filter(Boolean));
+  const deadline = Date.now() + Math.max(0, waitMs || 0);
+
+  while (pending.size > 0) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      break;
+    }
+
+    const settledPromise = Promise.race(
+      Array.from(pending).map((promise) => Promise.resolve(promise)
+        .then((streams) => ({
+          promise,
+          streams: Array.isArray(streams) ? streams : []
+        }))
+        .catch(() => ({ promise, streams: [] })))
+    );
+    const result = await Promise.race([
+      settledPromise,
+      delay(remainingMs).then(() => null)
+    ]);
+    if (!result) {
+      break;
+    }
+
+    pending.delete(result.promise);
+    if (result.streams.length > 0) {
+      console.log(`[Stream quality] Empty first attempt for ${label}; returning ${result.streams.length} full-build streams`);
+      return result.streams;
+    }
+  }
+
+  console.log(`[Stream quality] Empty first attempt fallback expired for ${label}`);
+  return [];
+}
+
 function prewarmSharedMaster(type, id, entries, requestContext = {}) {
   const sharedEntries = sharedProviderEntriesFor(entries);
   if (sharedEntries.length === 0) {
@@ -2202,7 +2288,19 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
   sharedQualityStreamsPromise.catch((error) => {
     console.error(`[Stream quality] ${type}:${id}:${qualityBand}:shared: ${error.message || error}`);
   });
-  return qualitySortFromStreams([...priorityStreams, ...sharedStreams, ...liveStreams], qualityBand);
+  const firstAttemptStreams = qualitySortFromStreams([...priorityStreams, ...sharedStreams, ...liveStreams], qualityBand);
+  if (firstAttemptStreams.length > 0) {
+    return firstAttemptStreams;
+  }
+
+  const fallbackStreams = await firstNonEmptyQualityFallback([
+    priorityBuild.fullPromise,
+    sharedBuild.fullPromise,
+    liveBuild.firstNonEmptyPromise
+      ? liveBuild.firstNonEmptyPromise(Math.min(STREAM_QUALITY_SHARED_WAIT_MS, DEFAULT_TIMEOUT_MS))
+      : liveBuild.fullPromise
+  ], `${type}:${id}:${qualityBand}`, Math.min(STREAM_QUALITY_SHARED_WAIT_MS, DEFAULT_TIMEOUT_MS));
+  return qualitySortFromStreams(fallbackStreams, qualityBand);
 }
 
 async function getStreams(type, id, options = {}) {

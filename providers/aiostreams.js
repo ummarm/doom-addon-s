@@ -1,14 +1,19 @@
 "use strict";
 
 const PROVIDER_NAME = "AIOStreams";
-const DEFAULT_MANIFEST_URL = "https://aiostreams.elfhosted.com/stremio/2bd9ad98-8ca6-4804-9663-ff88baf8ecca/eyJpIjoia0NIZGVINjNlODIwQ2szbHJZMWllQT09IiwiZSI6IlpzZVBFQ3NRcVVKRnhQcWJJa2pudUV1N1ZQckdXUlh5bmtaRW1YNlBLNFk9IiwidCI6ImEifQ/manifest.json";
+const DEFAULT_MANIFEST_URL = "https://aiostreams.fortheweak.cloud/stremio/0f2abcc3-6334-4dc1-8852-4f1f54ee0ede/eyJpIjoiT0xEakJYaklobC84NTJPeFlrdkNyZz09IiwiZSI6IjBlRjBuUXMwRmwrMldXbXYwYVlpODliQitlblBjUGVrN1VEd1Zsb3RBSUk9IiwidCI6ImEifQ/manifest.json";
+const BACKUP_MANIFEST_URL = "https://aiostreams.elfhosted.com/stremio/2bd9ad98-8ca6-4804-9663-ff88baf8ecca/eyJpIjoia0NIZGVINjNlODIwQ2szbHJZMWllQT09IiwiZSI6IlpzZVBFQ3NRcVVKRnhQcWJJa2pudUV1N1ZQckdXUlh5bmtaRW1YNlBLNFk9IiwidCI6ImEifQ/manifest.json";
 
-function configuredBaseUrl() {
-  const raw = process.env.AIOSTREAMS_MANIFEST_URL || process.env.AIOSTREAMS_BASE_URL || DEFAULT_MANIFEST_URL;
-  if (!raw) {
-    return "";
+function normalizeBaseUrl(raw) {
+  return String(raw || "").replace(/\/manifest\.json$/i, "").replace(/\/+$/, "");
+}
+
+function configuredBaseUrls() {
+  const override = process.env.AIOSTREAMS_MANIFEST_URL || process.env.AIOSTREAMS_BASE_URL;
+  if (override) {
+    return [normalizeBaseUrl(override)].filter(Boolean);
   }
-  return raw.replace(/\/manifest\.json$/i, "").replace(/\/+$/, "");
+  return [DEFAULT_MANIFEST_URL, BACKUP_MANIFEST_URL].map(normalizeBaseUrl).filter(Boolean);
 }
 
 function streamId(baseId, mediaType, season, episode) {
@@ -19,27 +24,42 @@ function streamId(baseId, mediaType, season, episode) {
 }
 
 async function fetchAioStreams(stremioId, mediaType, season, episode) {
-  const baseUrl = configuredBaseUrl();
-  if (!baseUrl) {
+  const baseUrls = configuredBaseUrls();
+  if (!baseUrls.length) {
     return [];
   }
 
   const stremioType = mediaType === "tv" ? "series" : mediaType;
   const id = streamId(stremioId, stremioType, season, episode);
-  const url = `${baseUrl}/stream/${encodeURIComponent(stremioType)}/${encodeURIComponent(id)}.json`;
-  const response = await fetch(url, {
-    headers: {
-      "Accept": "application/json",
-      "User-Agent": "Doom-addon/1.0"
-    },
-    redirect: "follow"
-  });
-  if (!response.ok) {
-    throw new Error(`${PROVIDER_NAME} returned HTTP ${response.status}`);
+  let lastError = null;
+  for (const baseUrl of baseUrls) {
+    const url = `${baseUrl}/stream/${encodeURIComponent(stremioType)}/${encodeURIComponent(id)}.json`;
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "Accept": "application/json",
+          "User-Agent": "Doom-addon/1.0"
+        },
+        redirect: "follow"
+      });
+      if (!response.ok) {
+        throw new Error(`${PROVIDER_NAME} returned HTTP ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const streams = Array.isArray(payload.streams) ? payload.streams : [];
+      if (streams.length > 0 || baseUrl === baseUrls[baseUrls.length - 1]) {
+        return streams;
+      }
+    } catch (error) {
+      lastError = error;
+    }
   }
 
-  const payload = await response.json();
-  return Array.isArray(payload.streams) ? payload.streams : [];
+  if (lastError) {
+    throw lastError;
+  }
+  return [];
 }
 
 async function getStreams(tmdbId, mediaType = "movie", season = null, episode = null, imdbId = "") {

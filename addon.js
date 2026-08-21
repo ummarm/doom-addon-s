@@ -2010,7 +2010,10 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
 }
 
 function qualitySortFromStreams(streams, qualityBand) {
-  return sortStreams(filterStreamsByQualityBand(dedupeStreams(streams.slice()), qualityBand), { qualityBand });
+  const sortedStreams = sortStreams(filterStreamsByQualityBand(dedupeStreams(streams.slice()), qualityBand), { qualityBand });
+  return STREAM_DIRECT_PLAYBACK_MODE
+    ? sortedStreams.map((stream) => (stream && stream.url ? cleanDirectPlaybackStream(stream) : stream))
+    : sortedStreams;
 }
 
 async function preferInitialStreams(fullPromise, initialPromise, label) {

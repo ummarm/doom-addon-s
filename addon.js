@@ -739,6 +739,22 @@ function cleanDirectPlaybackStream(stream) {
   return Object.assign({}, stream, { behaviorHints });
 }
 
+function sanitizeStremioStream(stream) {
+  if (!stream || typeof stream !== "object") {
+    return stream;
+  }
+
+  const sanitized = Object.assign({}, stream);
+  const description = sanitized.description || sanitized.title;
+  delete sanitized.title;
+  if (description) {
+    sanitized.description = description;
+  } else {
+    delete sanitized.description;
+  }
+  return sanitized;
+}
+
 function isFastAcceptableStream(stream) {
   return (/^https:\/\//i.test(stream.url || "") || isDirectMediaUrl(stream.url || ""))
     && !isKnownClientBoundUrl(stream.url)
@@ -1810,7 +1826,7 @@ async function finalizeStreams(providerResults, options = {}) {
     probeTimeoutMs: options.probeTimeoutMs
   });
   const qualityMatchedStreams = filterStreamsByQualityBand([...playableStreams, ...passthrough], options.qualityBand);
-  return sortStreams(qualityMatchedStreams, { qualityBand: options.qualityBand });
+  return sortStreams(qualityMatchedStreams, { qualityBand: options.qualityBand }).map(sanitizeStremioStream);
 }
 
 async function startStreamBuild(type, id, entries, requestContext = {}) {
@@ -2011,9 +2027,10 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
 
 function qualitySortFromStreams(streams, qualityBand) {
   const sortedStreams = sortStreams(filterStreamsByQualityBand(dedupeStreams(streams.slice()), qualityBand), { qualityBand });
-  return STREAM_DIRECT_PLAYBACK_MODE
+  const playbackStreams = STREAM_DIRECT_PLAYBACK_MODE
     ? sortedStreams.map((stream) => (stream && stream.url ? cleanDirectPlaybackStream(stream) : stream))
     : sortedStreams;
+  return playbackStreams.map(sanitizeStremioStream);
 }
 
 async function preferInitialStreams(fullPromise, initialPromise, label) {

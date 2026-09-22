@@ -280,7 +280,9 @@ hostname at the old container.
 
 Pengu needs the private manifest URL in `PENGU_MANIFEST_URL`. On the Windows
 Docker host, add `PENGU_MANIFEST_URL=<your Pengu manifest URL>` to the local
-`.env` file, then recreate only this project's containers with
+`.env` file. Also set `TMDB_API_KEY=<your TMDB API key>` there. The Docker
+configuration requires the TMDB key before replacing the running container.
+Then recreate only this project's containers with
 `docker compose up -d --build --force-recreate`. The URL contains a credential;
 `.env` is ignored by Git and must not be committed. Add the same value as a
 GitHub Actions secret named `PENGU_MANIFEST_URL` to let the daily original-source

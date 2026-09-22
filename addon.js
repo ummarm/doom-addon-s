@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 const ROOT = __dirname;
-const TMDB_API_KEY = process.env.TMDB_API_KEY || "439c478a771f35c05022f9feabcca01c";
+const TMDB_API_KEY = process.env.TMDB_API_KEY || "";
 const DEFAULT_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 70000);
 const STREAM_PROBE_TIMEOUT_MS = Number(process.env.STREAM_PROBE_TIMEOUT_MS || 8000);
 const STREAM_PROBE_CONCURRENCY = Number(process.env.STREAM_PROBE_CONCURRENCY || 6);
@@ -714,6 +714,7 @@ function streamRequiresProbe(stream) {
     return true;
   }
   return Boolean(stream.behaviorHints && [
+    "pengu",
     "4khdhubnew",
     "4khdhub_yoruix",
     "hdhub4u",
@@ -1884,6 +1885,7 @@ function isQualityPriorityProvider(provider) {
     return false;
   }
   return isPassthroughProvider(provider) || [
+    "pengu",
     "4khdhubnew",
     "hdhub4u_yoruix",
     "hindmoviez",

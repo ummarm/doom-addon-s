@@ -10,7 +10,7 @@ const manifestUrl = "https://pengu.uk/%7B%22auth_token%22%3A%22test%22%7D/manife
 test("Pengu is included in all three quality groups", () => {
   for (const slug of ["quality-4k", "quality-1080", "quality-low"]) {
     assert.ok(addonGroups[slug].providerIds.includes("pengu"));
-    assert.equal(addonManifests[slug].version, "3.0.5");
+    assert.equal(addonManifests[slug].version, "3.0.6");
   }
 });
 

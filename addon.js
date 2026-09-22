@@ -2273,7 +2273,6 @@ function prewarmSharedMaster(type, id, entries, requestContext = {}) {
 }
 
 async function getQualityBandStreams(type, id, entries, qualityBand, requestContext = {}) {
-  const priorityBuild = getQualityPriorityBuild(type, id, entries, requestContext);
   const sharedBuild = getSharedMasterBuild(type, id, entries, requestContext);
   const liveEntries = liveProviderEntriesFor(entries);
   const liveBuild = liveEntries.length > 0
@@ -2286,16 +2285,7 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
 
   const sharedStreamsPromise = preferInitialStreams(
     sharedBuild.fullPromise,
-    sharedBuild.qualityWaitPromise || sharedBuild.fastPromise || sharedBuild.fullPromise,
-    `${type}:${id}:${qualityBand}:shared`
-  );
-  const priorityStreamsPromise = preferPriorityQualityStreams(
-    priorityBuild,
-    `${type}:${id}:${qualityBand}:priority`
-  );
-  const sharedQualityStreamsPromise = preferQualitySharedStreams(
-    sharedBuild.fullPromise,
-    sharedStreamsPromise,
+    sharedBuild.firstBatchPromise || sharedBuild.fastPromise || sharedBuild.fullPromise,
     `${type}:${id}:${qualityBand}:shared`
   );
   const liveStreamsPromise = preferInitialStreams(
@@ -2303,27 +2293,17 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
     liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise,
     `${type}:${id}:${qualityBand}:live`
   );
-  const [priorityStreams, liveStreams] = await Promise.all([
-    priorityStreamsPromise,
+  const [sharedStreams, liveStreams] = await Promise.all([
+    sharedStreamsPromise,
     liveStreamsPromise
   ]);
-  const sharedStreams = priorityStreams.length < 4
-    ? await Promise.race([
-      sharedQualityStreamsPromise,
-      delay(3000).then(() => [])
-    ])
-    : [];
-  sharedQualityStreamsPromise.catch((error) => {
-    console.error(`[Stream quality] ${type}:${id}:${qualityBand}:shared: ${error.message || error}`);
-  });
-  const regularFirstAttemptStreams = qualitySortFromStreams([...priorityStreams, ...sharedStreams], qualityBand);
+  const regularFirstAttemptStreams = qualitySortFromStreams(sharedStreams, qualityBand);
   const liveFirstAttemptStreams = qualitySortFromStreams(liveStreams, qualityBand);
   if (regularFirstAttemptStreams.length > 0) {
     return [...regularFirstAttemptStreams, ...liveFirstAttemptStreams];
   }
 
   const regularFallbackStreams = await firstRegularQualityStreams([
-    priorityBuild.fullPromise,
     sharedBuild.fullPromise
   ], qualityBand, `${type}:${id}:${qualityBand}:regular`, Math.min(STREAM_QUALITY_REGULAR_WAIT_MS, STREAM_QUALITY_SHARED_WAIT_MS, DEFAULT_TIMEOUT_MS));
   if (regularFallbackStreams.length > 0) {

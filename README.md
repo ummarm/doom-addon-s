@@ -23,6 +23,7 @@ upstream sources directly:
 - `MoviesDrive`
 - `NetMirror`
 - `Peachify`
+- `Pengu`
 
 It exposes a Stremio-compatible `manifest.json` and a stream endpoint that calls
 every enabled provider, merges the results, and returns Stremio stream objects.
@@ -54,6 +55,7 @@ every enabled provider, merges the results, and returns Stremio stream objects.
 - `providers/netmirror.js`
 - `providers/peachify.js`
 - `providers/streamflix.js`
+- `providers/pengu.js`
 
 ## Run locally
 
@@ -276,6 +278,17 @@ hostname at the old container.
 
 ## Notes
 
+Pengu needs the private manifest URL in `PENGU_MANIFEST_URL`. On the Windows
+Docker host, add `PENGU_MANIFEST_URL=<your Pengu manifest URL>` to the local
+`.env` file, then recreate only this project's containers with
+`docker compose up -d --build --force-recreate`. The URL contains a credential;
+`.env` is ignored by Git and must not be committed. Add the same value as a
+GitHub Actions secret named `PENGU_MANIFEST_URL` to let the daily original-source
+sync track Pengu's manifest version. Without the host environment variable,
+Pengu returns no streams; without the Actions secret, only its version check is
+skipped. Its returned links still undergo direct playback and seek checks before
+they are emitted into UHD, FHD or HD.
+
 - Provider files sync directly from the original upstream sources:
   `https://raw.githubusercontent.com/D3adlyRocket/All-in-One-Nuvio/refs/heads/main/manifest.json`,
   `https://raw.githubusercontent.com/yoruix/nuvio-providers/refs/heads/main/manifest.json`,
@@ -297,7 +310,8 @@ hostname at the old container.
   upstream sync.
 - `NetMirror`, `Peachify`, `MovieBox`, and `MoviesDrive` are synced from
   `D3adlyRocket/All-in-One-Nuvio`. Peachify results are filtered to Hindi and
-  English audio only.
+  English audio only. MoviesDrive's upstream replacement is paused because it
+  embeds a TMDB key; the existing provider remains active.
 - Provider results keep Doom-addon-S's working-and-seekable stream validation
   before results are returned to Stremio.
 - `Umbrella M`, `Umbrella Y`, `Umbrella D`, and `Umbrella F` are separate

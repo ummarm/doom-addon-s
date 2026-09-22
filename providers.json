@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon-S",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -516,6 +516,29 @@
         "m3u8"
       ],
       "logo": "https://i.postimg.cc/9QZLkH7f/umbrella.png",
+      "contentLanguage": [
+        "en",
+        "hi"
+      ]
+    },
+    {
+      "id": "pengu",
+      "name": "Pengu",
+      "description": "Pengu direct streams with seek and playback validation in the UHD, FHD and HD quality groups",
+      "version": "1.0.0",
+      "upstreamVersion": "1.4.0",
+      "author": "Pengu/ummarm",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/pengu.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "mkv",
+        "m3u8"
+      ],
       "contentLanguage": [
         "en",
         "hi"

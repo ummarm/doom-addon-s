@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon-S",
-  "version": "3.0.8",
+  "version": "3.0.9",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -802,7 +802,7 @@
       "id": "moviesdrive",
       "name": "MoviesDrive",
       "description": "MoviesDrive - Movies and TV shows with multiple streaming servers",
-      "version": "1.0.13",
+      "version": "1.0.14",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -825,7 +825,7 @@
       "id": "netmirror",
       "name": "NetMirror",
       "description": "NetMirror streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.5",
+      "version": "1.0.6",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -917,7 +917,7 @@
       "id": "fibwatch",
       "name": "FibWatch",
       "description": "FibWatch streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon-S",
-  "version": "3.0.9",
+  "version": "3.0.10",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -825,7 +825,7 @@
       "id": "netmirror",
       "name": "NetMirror",
       "description": "NetMirror streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

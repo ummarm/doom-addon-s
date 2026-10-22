@@ -1,12 +1,12 @@
 {
   "name": "Doom-addon-S",
-  "version": "3.0.14",
+  "version": "3.0.15",
   "scrapers": [
     {
       "id": "4khdhub",
       "name": "4KHDHub",
       "description": "4KHDHub direct links",
-      "version": "1.0.17",
+      "version": "1.0.18",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -48,7 +48,7 @@
       "id": "4khdhub_yoruix",
       "name": "4KHDHub Yoruix",
       "description": "Alternate 4KHDHub implementation synced from yoruix/nuvio-providers",
-      "version": "1.0.8",
+      "version": "1.0.9",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -69,7 +69,7 @@
       "id": "hdhub4u",
       "name": "HDHub4u",
       "description": "Direct links from HDHub4u with high-speed download support",
-      "version": "1.0.13",
+      "version": "1.0.14",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -97,7 +97,7 @@
         "tv"
       ],
       "filename": "providers/hdhub4u_murph.js",
-      "enabled": true,
+      "enabled": false,
       "formats": [
         "mp4",
         "mkv",
@@ -120,7 +120,7 @@
         "tv"
       ],
       "filename": "providers/moviebox_murph.js",
-      "enabled": true,
+      "enabled": false,
       "formats": [
         "mp4",
         "mkv",
@@ -143,7 +143,7 @@
         "tv"
       ],
       "filename": "providers/movies4u_murph.js",
-      "enabled": true,
+      "enabled": false,
       "formats": [
         "mp4",
         "mkv",
@@ -159,7 +159,7 @@
       "id": "hdhub4u_yoruix",
       "name": "HDHub4u Yoruix",
       "description": "Alternate HDHub4u implementation synced from yoruix/nuvio-providers",
-      "version": "1.0.9",
+      "version": "1.0.10",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -204,7 +204,7 @@
       "id": "netmirror_yoruix",
       "name": "NetMirror Yoruix",
       "description": "Alternate NetMirror implementation synced from yoruix/nuvio-providers",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -227,7 +227,7 @@
       "id": "uhdmovies_yoruix",
       "name": "UHDMovies Yoruix",
       "description": "Alternate UHDMovies implementation synced from yoruix/nuvio-providers",
-      "version": "1.2.4",
+      "version": "1.2.5",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -672,7 +672,7 @@
         "tv"
       ],
       "filename": "providers/4khdhub_murph.js",
-      "enabled": true,
+      "enabled": false,
       "formats": [
         "mp4",
         "mkv",
@@ -695,7 +695,7 @@
         "tv"
       ],
       "filename": "providers/moviebox.js",
-      "enabled": true,
+      "enabled": false,
       "formats": [
         "mp4",
         "mkv",
@@ -779,7 +779,7 @@
       "id": "uhdmovies",
       "name": "UHDMovies",
       "description": "UHDMovies streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.8",
+      "version": "1.0.9",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -802,7 +802,7 @@
       "id": "moviesdrive",
       "name": "MoviesDrive",
       "description": "MoviesDrive - Movies and TV shows with multiple streaming servers",
-      "version": "1.0.14",
+      "version": "1.0.15",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -825,7 +825,7 @@
       "id": "netmirror",
       "name": "NetMirror",
       "description": "NetMirror streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.7",
+      "version": "1.0.8",
       "author": "ummarm",
       "supportedTypes": [
         "movie",
@@ -917,7 +917,7 @@
       "id": "fibwatch",
       "name": "FibWatch",
       "description": "FibWatch streams synced from D3adlyRocket/All-in-One-Nuvio",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "author": "ummarm",
       "supportedTypes": [
         "movie",

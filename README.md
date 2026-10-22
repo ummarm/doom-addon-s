@@ -7,22 +7,31 @@ upstream sources directly:
 - `HDHub4u`
 - `4khdhub-tv`
 - `4KHDHub Yoruix`
-- `HDHub4u Murph`
+- `HDHub4u Yoruix`
+- `MovieBox Yoruix`
+- `UHDMovies Yoruix`
+- `MovieBlast Yoruix`
 - `Flix-Streams Emby`
 - `Flix-Streams MkvCinemas`
 - `Flix-Streams LotusVault`
 - `Flix-Streams ArchiveVault`
 - `Flix-Streams UHDMovies`
 - `Flix-Streams Other`
-- `MediaFusion`
-- `AIOStreams`
+- `WebStreamrMBG`
+- `Torbox`
 - `HindMoviez`
 - `MovieBlast`
-- `4KHDHub Murph`
-- `MovieBox`
+- `4KHDHub-NEW`
+- `MovieBox-Hindi`
+- `Movies4u`
+- `UHDMovies`
 - `MoviesDrive`
-- `NetMirror`
 - `Peachify`
+- `VegaMovies`
+- `PlayIMDb`
+- `FibWatch`
+- `CineFreak`
+- `VidLink`
 - `Pengu`
 
 It exposes a Stremio-compatible `manifest.json` and a stream endpoint that calls
@@ -310,10 +319,15 @@ they are emitted into UHD, FHD or HD.
   those Flixnest links are not working reliably.
 - `StreamFlix` is kept in the repo but currently disabled and paused from
   upstream sync.
-- `NetMirror`, `Peachify`, `MovieBox`, and `MoviesDrive` are synced from
+- `MovieBox` (`MB`) from `D3adlyRocket/All-in-One-Nuvio` is kept in the repo but
+  disabled. The separate `MovieBox Yoruix` and `MovieBox-Hindi` providers remain
+  enabled.
+- Murph's saved manifest currently returns HTTP 404, so all four Murph wrappers
+  are disabled until that original source is available again or moves.
+- `NetMirror`, `Peachify`, and `MoviesDrive` are sourced from
   `D3adlyRocket/All-in-One-Nuvio`. Peachify results are filtered to Hindi and
-  English audio only. MoviesDrive's upstream replacement is paused because it
-  embeds a TMDB key; the existing provider remains active.
+  English audio only. MoviesDrive's automatic source replacement remains paused;
+  the existing provider remains active.
 - Provider results keep Doom-addon-S's working-and-seekable stream validation
   before results are returned to Stremio.
 - `Umbrella M`, `Umbrella Y`, `Umbrella D`, and `Umbrella F` are separate

@@ -35,6 +35,7 @@ jobs:
         id: sync
         env:
           FORCE_SYNC: ${{ github.event.inputs.force || 'false' }}
+          PENGU_MANIFEST_URL: ${{ secrets.PENGU_MANIFEST_URL }}
         run: python scripts/sync_upstream.py
 
       - name: Commit synced providers

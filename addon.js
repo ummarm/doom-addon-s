@@ -58,7 +58,6 @@ const addonGroups = {
       "hindmoviez",
       "movieblast",
       "movieboxhindi",
-      "moviebox",
       "movies4u",
       "moviesdrive",
       "netmirror",

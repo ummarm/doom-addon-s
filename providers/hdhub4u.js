@@ -66,7 +66,7 @@ var __async = (__this, __arguments, generator) => {
 var import_cheerio_without_node_native2 = __toESM(require("cheerio-without-node-native"));
 
 // src/hdhub4u/constants.js
-var TMDB_API_KEY = "439c478a771f35c05022f9feabcca01c";
+var TMDB_API_KEY = process.env.TMDB_API_KEY || "";
 var TMDB_BASE_URL = "https://api.themoviedb.org/3";
 var MAIN_URL = "https://new6.hdhub4u.cl";
 var DOMAINS_URL = "https://raw.githubusercontent.com/ummarm/doom-addon-s/main/domains.json";

@@ -43,7 +43,7 @@ var __async = (__this, __arguments, generator) => {
 };
 
 // src/netmirror/constants.js
-var TMDB_API_KEY = "1865f43a0549ca50d341dd9ab8b29f49";
+var TMDB_API_KEY = process.env.TMDB_API_KEY || "";
 var PLATFORM_MAP = {
   netflix: {
     ott: "nf",

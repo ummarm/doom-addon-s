@@ -52,6 +52,7 @@ DEFAULT_UPSTREAMS = {
         "webstreamrmbg": WEBSTREAMRMBG_MANIFEST_URL,
         "torbox": TORBOX_MANIFEST_URL,
         "torboxBackup": TORBOX_BACKUP_MANIFEST_URL,
+        "pengu": "env:PENGU_MANIFEST_URL",
     },
     "repositories": {
         "webstreamrmbg": WEBSTREAMRMBG_REPOSITORY_URL,
@@ -770,7 +771,7 @@ PROVIDERS = (
     Provider("streamflix", ("providers/streamflix.js",), "providers/streamflix.js", ("streamflix",)),
 )
 MURPH_WRAPPER_IDS = {"4khdhub_murph", "hdhub4u_murph", "moviebox_murph", "movies4u_murph"}
-PAUSED_UPSTREAM_PROVIDER_IDS = {"streamflix"}
+PAUSED_UPSTREAM_PROVIDER_IDS = {"streamflix", "moviesdrive"}
 LOCAL_VARIANT_UPSTREAM_PATHS = {
     # D3 does not publish a separate 4khdhub-tv provider file. Keep Doom-addon-S's
     # local variant, but verify the upstream family file still exists each sync.
@@ -985,9 +986,33 @@ def patch_moviesdrive_domain_source(text: str) -> str:
         return updated.replace(old_block, new_block, 1)
 
     if "DOMAINS_URL" in text:
-        return patch_domain_source(text)
+        updated = patch_domain_source(text)
+        return updated.replace(
+            "cachedMainUrl = data.moviesdrive || MAIN_URL",
+            "cachedMainUrl = data.Moviesdrive || data.moviesdrive || MAIN_URL",
+            1,
+        )
 
     return text
+
+
+def patch_moviesdrive_metadata_source(text: str) -> str:
+    if "requestContext.mediaInfo" in text:
+        return text
+
+    start = text.find("function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1) {")
+    end_marker = "    const mainUrl = yield getMainUrl();"
+    end = text.find(end_marker, start)
+    if start < 0 or end < 0:
+        raise RuntimeError("Could not replace MoviesDrive's credential-bearing metadata lookup")
+
+    replacement = """function getStreams(tmdbId, mediaType, seasonNum = 1, episodeNum = 1, imdbId = "", requestContext = {}) {
+  return __async(this, null, function* () {
+    console.log(`[MoviesDrive] Querying streams for TMDB: ${tmdbId}, Type: ${mediaType}`);
+    const cleanTitle = requestContext.mediaInfo && requestContext.mediaInfo.title || "";
+    if (!cleanTitle) return [];
+    const mainUrl = yield getMainUrl();"""
+    return text[:start] + replacement + text[end + len(end_marker):]
 
 
 def patch_yoruix_hdhub4u_source(text: str) -> str:
@@ -1040,6 +1065,33 @@ def patch_moviebox_crypto_source(text: str) -> str:
     return 'var CryptoJS = require("crypto-js");\n' + text.lstrip("\n")
 
 
+def patch_tmdb_key_source(text: str) -> str:
+    replacements = (
+        (r'''var\s+TMDB_API_KEY\s*=\s*["'][^"']+["'];''', 'var TMDB_API_KEY = process.env.TMDB_API_KEY || "";'),
+        (r'''const\s+TMDB_API_KEY\s*=\s*["'][^"']+["'];''', 'const TMDB_API_KEY = process.env.TMDB_API_KEY || "";'),
+        (r'''const\s+TMDB_KEY\s*=\s*["'][^"']+["'];''', 'const TMDB_KEY = process.env.TMDB_API_KEY || "";'),
+    )
+    for pattern, replacement in replacements:
+        text = re.sub(pattern, replacement, text, count=1)
+    return text
+
+
+TMDB_ENV_PROVIDER_IDS = {
+    "4khdhub",
+    "4khdhubtv",
+    "4khdhubnew",
+    "hdhub4u",
+    "fibwatch",
+    "netmirror",
+    "uhdmovies",
+    "4khdhub_yoruix",
+    "hdhub4u_yoruix",
+    "netmirror_yoruix",
+    "uhdmovies_yoruix",
+    "moviesdrive",
+}
+
+
 def patch_movies4u_cheerio_source(text: str) -> str:
     if "cheerio" not in text or "cheerio-without-node-native" in text:
         return text
@@ -1047,12 +1099,15 @@ def patch_movies4u_cheerio_source(text: str) -> str:
 
 
 def transform_source(provider: Provider, text: str) -> str:
+    if provider.scraper_id in TMDB_ENV_PROVIDER_IDS:
+        text = patch_tmdb_key_source(text)
     if provider.scraper_id in {"4khdhub", "4khdhubtv", "4khdhubnew", "hdhub4u", "4khdhub_yoruix", "hdhub4u_yoruix"} and "DOMAINS_URL" in text:
         text = patch_domain_source(text)
     elif provider.scraper_id == "vegamovies":
         text = patch_vegamovies_domain_source(text)
     elif provider.scraper_id == "moviesdrive":
         text = patch_moviesdrive_domain_source(text)
+        text = patch_moviesdrive_metadata_source(text)
     if provider.scraper_id in {"moviebox", "movieboxhindi", "moviebox_yoruix"}:
         text = patch_moviebox_crypto_source(text)
     if provider.scraper_id == "movies4u":
@@ -1256,9 +1311,14 @@ def package_description(names: list[str]) -> str:
     return "Doom-addon-S: a Stremio stream add-on with " + ", ".join(names) + "."
 
 
-def update_versions(changed_ids: set[str]) -> tuple[bool, list[str], dict]:
+def update_versions(changed_ids: set[str], upstream_versions: dict[str, str] | None = None) -> tuple[bool, list[str], dict]:
     registry = load_provider_registry()
     registry["name"] = "Doom-addon-S"
+    for scraper in registry.get("scrapers", []):
+        version = (upstream_versions or {}).get(scraper.get("id", ""))
+        if version and scraper.get("upstreamVersion") != version:
+            scraper["upstreamVersion"] = version
+            changed_ids.add(scraper["id"])
     if not changed_ids:
         return write_json_if_changed(PROVIDER_REGISTRY_PATH, registry), [], registry
 
@@ -1468,13 +1528,27 @@ def main() -> int:
     murph_manifest_url = manifests.get("murph", MURPH_MANIFEST_URL)
     webstreamrmbg_manifest_url = manifests.get("webstreamrmbg", WEBSTREAMRMBG_MANIFEST_URL)
     torbox_manifest_url = manifests.get("torbox", TORBOX_MANIFEST_URL)
+    pengu_reference = manifests.get("pengu", "env:PENGU_MANIFEST_URL")
+    pengu_manifest_url = os.environ.get(pengu_reference[4:], "") if pengu_reference.startswith("env:") else pengu_reference
     sync_warnings.extend(check_manifest_available("Flixnest", flixnest_manifest_url))
     sync_warnings.extend(check_manifest_available("WebStreamrMBG", webstreamrmbg_manifest_url))
     sync_warnings.extend(check_manifest_available("Torbox", torbox_manifest_url))
     sync_warnings.extend(check_murph_manifest(murph_manifest_url))
 
+    upstream_versions: dict[str, str] = {}
+    if pengu_manifest_url:
+        try:
+            pengu_manifest = fetch_json(pengu_manifest_url)
+            version = pengu_manifest.get("version") if isinstance(pengu_manifest, dict) else None
+            if isinstance(version, str) and version:
+                upstream_versions["pengu"] = version
+            else:
+                sync_warnings.append("Pengu manifest has no version; existing configuration was kept.")
+        except Exception:
+            sync_warnings.append("Pengu manifest check failed; existing configuration was kept.")
+
     changed_ids = {provider.scraper_id for provider in changed_providers} | changed_domain_ids | changed_local_variant_ids
-    registry_changed, version_changes, registry = update_versions(changed_ids)
+    registry_changed, version_changes, registry = update_versions(changed_ids, upstream_versions)
     changed_files: list[str] = [provider.provider.local_path_str for provider in changed_providers]
     changed_files.extend(changed_local_variant_files)
     if changed_domain_ids:
@@ -1510,6 +1584,7 @@ def main() -> int:
         f"- `{webstreamrmbg_manifest_url}`",
         f"- `{upstreams.get('repositories', {}).get('webstreamrmbg', WEBSTREAMRMBG_REPOSITORY_URL)}`",
         f"- `{torbox_manifest_url}`",
+        f"- `{pengu_reference}`",
     ]
     if changed_ids:
         summary_lines.extend(["", f"Updated scrapers: `{changed_names}`", "", "Version bumps:"])

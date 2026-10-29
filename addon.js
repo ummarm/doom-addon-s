@@ -738,7 +738,11 @@ function streamRequiresProbe(stream) {
 
 function cleanDirectPlaybackStream(stream) {
   const behaviorHints = Object.assign({}, stream.behaviorHints || {});
-  delete behaviorHints.notWebReady;
+  const keepNotWebReady = behaviorHints.doomProviderId === "pengu"
+    && !looksWebReady(stream.url);
+  if (!keepNotWebReady) {
+    delete behaviorHints.notWebReady;
+  }
   delete behaviorHints.proxyHeaders;
   return Object.assign({}, stream, { behaviorHints });
 }
@@ -2477,5 +2481,6 @@ module.exports = {
   scopeHasProvider,
   parseStremioId,
   resolveTmdbId,
-  normalizeStream
+  normalizeStream,
+  cleanDirectPlaybackStream
 };

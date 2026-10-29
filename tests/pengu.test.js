@@ -3,14 +3,14 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 const { getStreams } = require("../providers/pengu");
-const { addonGroups, addonManifests, normalizeStream } = require("../addon");
+const { addonGroups, addonManifests, normalizeStream, cleanDirectPlaybackStream } = require("../addon");
 
 const manifestUrl = "https://pengu.uk/%7B%22auth_token%22%3A%22test%22%7D/manifest.json";
 
 test("Pengu is included in all three quality groups", () => {
   for (const slug of ["quality-4k", "quality-1080", "quality-low"]) {
     assert.ok(addonGroups[slug].providerIds.includes("pengu"));
-    assert.equal(addonManifests[slug].version, "3.0.18");
+    assert.equal(addonManifests[slug].version, "3.0.19");
   }
 });
 
@@ -53,6 +53,7 @@ test("Pengu requests movies and episodes and discards non-playable rows", async 
     assert.equal(normalized.behaviorHints.notWebReady, true);
     assert.equal(normalized.name, "Pengu 1080p");
     assert.equal(normalized.description, "Movie 1080p");
+    assert.equal(cleanDirectPlaybackStream(normalized).behaviorHints.notWebReady, true);
   } finally {
     global.fetch = previousFetch;
     if (previousUrl === undefined) delete process.env.PENGU_MANIFEST_URL;

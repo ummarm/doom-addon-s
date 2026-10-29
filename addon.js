@@ -8,12 +8,16 @@ const TMDB_API_KEY = process.env.TMDB_API_KEY || "";
 const DEFAULT_TIMEOUT_MS = Number(process.env.PROVIDER_TIMEOUT_MS || 70000);
 const STREAM_PROBE_TIMEOUT_MS = Number(process.env.STREAM_PROBE_TIMEOUT_MS || 8000);
 const STREAM_PROBE_CONCURRENCY = Number(process.env.STREAM_PROBE_CONCURRENCY || 6);
+const PENGU_PROBE_CONCURRENCY = Number(process.env.PENGU_PROBE_CONCURRENCY || 12);
+const PENGU_QUALITY_WAIT_MS = Number(process.env.PENGU_QUALITY_WAIT_MS || 30000);
 const STREAM_CACHE_TTL_MS = Number(process.env.STREAM_CACHE_TTL_MS || 10 * 60 * 1000);
 const STREAM_CACHE_MAX_ENTRIES = Number(process.env.STREAM_CACHE_MAX_ENTRIES || 100);
 const STREAM_FAST_PROVIDER_WAIT_MS = Number(process.env.STREAM_FAST_PROVIDER_WAIT_MS || 12000);
 const STREAM_FAST_PROBE_TIMEOUT_MS = Number(process.env.STREAM_FAST_PROBE_TIMEOUT_MS || 2500);
 const MEDIAFUSION_PROBE_TIMEOUT_MS = Number(process.env.MEDIAFUSION_PROBE_TIMEOUT_MS || 8000);
 const QUALITY_SHARED_CACHE_SCOPE = "quality-shared";
+const QUALITY_REGULAR_CACHE_SCOPE = "quality-shared-regular";
+const QUALITY_PENGU_CACHE_SCOPE = "quality-pengu";
 const QUALITY_PRIORITY_CACHE_SCOPE = "quality-priority";
 const STREAM_FIRST_BATCH_WAIT_MS = Number(process.env.STREAM_FIRST_BATCH_WAIT_MS || 8000);
 const QUALITY_TV_FAST_WAIT_MS = Number(process.env.QUALITY_TV_FAST_WAIT_MS || STREAM_FIRST_BATCH_WAIT_MS);
@@ -901,8 +905,9 @@ async function filterPlayableStreams(streams, options = {}) {
     }
   }
 
+  const probeConcurrency = Math.max(1, Number(options.probeConcurrency || STREAM_PROBE_CONCURRENCY));
   const workers = Array.from(
-    { length: Math.min(STREAM_PROBE_CONCURRENCY, streams.length) },
+    { length: Math.min(probeConcurrency, streams.length) },
     () => worker()
   );
   await Promise.all(workers);
@@ -1589,8 +1594,11 @@ function normalizeStream(rawStream, provider, mediaInfo) {
   const nameParts = [provider.name, quality].filter(Boolean);
   const behaviorHints = Object.assign({}, rawStream.behaviorHints || {});
   const detectedSize = streamSizeBytes(rawStream);
-  const detailDescription = streamDetailDescription(rawStream, provider);
-  const description = detailDescription || rawStream.description || rawStream.title || nameParts.join(" | ");
+  const preserveSourceCard = provider.id === "pengu";
+  const detailDescription = preserveSourceCard ? "" : streamDetailDescription(rawStream, provider);
+  const description = preserveSourceCard
+    ? rawStream.description || rawStream.title || nameParts.join(" | ")
+    : detailDescription || rawStream.description || rawStream.title || nameParts.join(" | ");
   const filename = streamFileName(rawStream);
 
   if (filename && !behaviorHints.filename) {
@@ -1613,7 +1621,9 @@ function normalizeStream(rawStream, provider, mediaInfo) {
   }
 
   return {
-    name: cleanStreamName(rawStream, mediaInfo) || nameWithQuality(rawStream.name || nameParts.join(" | ") || provider.name, rawStream),
+    name: preserveSourceCard
+      ? nameWithQuality(rawStream.name || nameParts.join(" | ") || provider.name, rawStream)
+      : cleanStreamName(rawStream, mediaInfo) || nameWithQuality(rawStream.name || nameParts.join(" | ") || provider.name, rawStream),
     title: description,
     description,
     url: targetUrl,
@@ -1819,13 +1829,18 @@ async function finalizeStreams(providerResults, options = {}) {
   const passthrough = streams.filter(isPassthroughStream);
   const regularStreams = streams.filter((stream) => !isPassthroughStream(stream));
   const mediaMatchedStreams = filterRequestedMediaStreams(regularStreams, options.mediaInfo, options.parsed);
-  const playableStreams = await filterPlayableStreams(dedupeStreams(mediaMatchedStreams), {
+  const regularQualityStreams = filterStreamsByQualityBand(mediaMatchedStreams, options.qualityBand);
+  const playableStreams = await filterPlayableStreams(dedupeStreams(regularQualityStreams), {
     mediaInfo: options.mediaInfo,
     parsed: options.parsed,
     probeOnlyRequired: options.probeOnlyRequired,
-    probeTimeoutMs: options.probeTimeoutMs
+    probeTimeoutMs: options.probeTimeoutMs,
+    probeConcurrency: options.probeConcurrency
   });
-  const qualityMatchedStreams = filterStreamsByQualityBand([...playableStreams, ...passthrough], options.qualityBand);
+  const qualityMatchedStreams = [
+    ...playableStreams,
+    ...filterStreamsByQualityBand(passthrough, options.qualityBand)
+  ];
   return sortStreams(qualityMatchedStreams, { qualityBand: options.qualityBand }).map(sanitizeStremioStream);
 }
 
@@ -1896,8 +1911,8 @@ function qualityPriorityEntriesFor(entries) {
   return sharedProviderEntriesFor(entries).filter(isQualityPriorityProvider);
 }
 
-function sharedMasterCacheKey(type, id) {
-  return streamCacheKey(type, id, QUALITY_SHARED_CACHE_SCOPE);
+function sharedMasterCacheKey(type, id, scope = QUALITY_SHARED_CACHE_SCOPE) {
+  return streamCacheKey(type, id, scope);
 }
 
 function qualityPriorityCacheKey(type, id) {
@@ -1922,7 +1937,8 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
         providerEntries: entries,
         probeOnlyRequired: true,
         probeTimeoutMs: options.probeTimeoutMs,
-        qualityBand: options.qualityBand || ""
+        qualityBand: options.qualityBand || "",
+        probeConcurrency: options.probeConcurrency
       });
     })
     .catch((error) => {
@@ -1954,7 +1970,8 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
         providerEntries: entries,
         probeOnlyRequired: true,
         probeTimeoutMs: options.probeTimeoutMs || fastProbeTimeoutMs,
-        qualityBand: options.qualityBand || ""
+        qualityBand: options.qualityBand || "",
+        probeConcurrency: options.probeConcurrency
       });
 
       if (streams.length > 0) {
@@ -1995,7 +2012,8 @@ function finalizedBuild(type, id, entries, requestContext = {}, options = {}) {
             providerEntries: entries,
             probeOnlyRequired: true,
             probeTimeoutMs: options.probeTimeoutMs || options.fastProbeTimeoutMs || STREAM_FAST_PROBE_TIMEOUT_MS,
-            qualityBand: options.qualityBand || ""
+            qualityBand: options.qualityBand || "",
+            probeConcurrency: options.probeConcurrency
           });
           if (streams.length > 0) {
             return streams;
@@ -2084,9 +2102,11 @@ async function preferQualitySharedStreams(fullPromise, initialPromise, label) {
   return lateInitial;
 }
 
-function getSharedMasterBuild(type, id, entries, requestContext = {}) {
-  const sharedEntries = sharedProviderEntriesFor(entries);
-  const sharedKey = sharedMasterCacheKey(type, id);
+function getSharedMasterBuild(type, id, entries, requestContext = {}, options = {}) {
+  const excludedProviderIds = new Set(options.excludeProviderIds || []);
+  const sharedEntries = sharedProviderEntriesFor(entries)
+    .filter((provider) => !excludedProviderIds.has(provider.id));
+  const sharedKey = sharedMasterCacheKey(type, id, options.cacheScope || QUALITY_SHARED_CACHE_SCOPE);
   let sharedFullPromise = Promise.resolve([]);
   let sharedFastPromise = sharedFullPromise;
   let sharedFirstBatchPromise = sharedFullPromise;
@@ -2138,6 +2158,41 @@ function getSharedMasterBuild(type, id, entries, requestContext = {}) {
     firstBatchPromise: sharedFirstBatchPromise,
     qualityWaitPromise: sharedQualityWaitPromise
   };
+}
+
+function getPenguQualityBuild(type, id, entries, qualityBand, requestContext = {}) {
+  const penguEntries = entries.filter((provider) => provider.id === "pengu");
+  const key = streamCacheKey(type, id, `${QUALITY_PENGU_CACHE_SCOPE}:${qualityBand}`);
+  const cached = penguEntries.length ? cachedStreams(key) : null;
+
+  if (cached) {
+    console.log(`[Stream cache] Hit for ${key} (${cached.length} streams)`);
+    return { fullPromise: Promise.resolve(cached) };
+  }
+  if (penguEntries.length === 0) {
+    return { fullPromise: Promise.resolve([]) };
+  }
+  if (streamInflight.has(key)) {
+    console.log(`[Stream cache] Joining Pengu quality build for ${key}`);
+    return { fullPromise: streamInflight.get(key).fullPromise };
+  }
+
+  const build = finalizedBuild(type, id, penguEntries, requestContext, {
+    cacheKey: key,
+    probeConcurrency: PENGU_PROBE_CONCURRENCY,
+    probeTimeoutMs: STREAM_PROBE_TIMEOUT_MS,
+    qualityBand
+  });
+  const fullPromise = build.fullPromise
+    .then((streams) => {
+      rememberStreams(key, streams);
+      return streams;
+    })
+    .finally(() => {
+      streamInflight.delete(key);
+    });
+  streamInflight.set(key, { fullPromise });
+  return { fullPromise };
 }
 
 function getQualityPriorityBuild(type, id, entries, requestContext = {}) {
@@ -2272,7 +2327,11 @@ function prewarmSharedMaster(type, id, entries, requestContext = {}) {
 }
 
 async function getQualityBandStreams(type, id, entries, qualityBand, requestContext = {}) {
-  const sharedBuild = getSharedMasterBuild(type, id, entries, requestContext);
+  const sharedBuild = getSharedMasterBuild(type, id, entries, requestContext, {
+    cacheScope: QUALITY_REGULAR_CACHE_SCOPE,
+    excludeProviderIds: ["pengu"]
+  });
+  const penguBuild = getPenguQualityBuild(type, id, entries, qualityBand, requestContext);
   const liveEntries = liveProviderEntriesFor(entries);
   const liveBuild = liveEntries.length > 0
     ? finalizedBuild(type, id, liveEntries, requestContext, {
@@ -2292,11 +2351,19 @@ async function getQualityBandStreams(type, id, entries, qualityBand, requestCont
     liveBuild.firstBatchPromise || liveBuild.fastPromise || liveBuild.fullPromise,
     `${type}:${id}:${qualityBand}:live`
   );
-  const [sharedStreams, liveStreams] = await Promise.all([
-    sharedStreamsPromise,
-    liveStreamsPromise
+  const penguStreamsPromise = Promise.race([
+    penguBuild.fullPromise,
+    delay(Math.max(0, PENGU_QUALITY_WAIT_MS)).then(() => {
+      console.log(`[Stream quality] Pengu wait expired for ${type}:${id}:${qualityBand}`);
+      return [];
+    })
   ]);
-  const regularFirstAttemptStreams = qualitySortFromStreams(sharedStreams, qualityBand);
+  const [sharedStreams, liveStreams, penguStreams] = await Promise.all([
+    sharedStreamsPromise,
+    liveStreamsPromise,
+    penguStreamsPromise
+  ]);
+  const regularFirstAttemptStreams = qualitySortFromStreams([...sharedStreams, ...penguStreams], qualityBand);
   const liveFirstAttemptStreams = qualitySortFromStreams(liveStreams, qualityBand);
   if (regularFirstAttemptStreams.length > 0) {
     return [...regularFirstAttemptStreams, ...liveFirstAttemptStreams];

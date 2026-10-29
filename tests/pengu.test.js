@@ -10,7 +10,7 @@ const manifestUrl = "https://pengu.uk/%7B%22auth_token%22%3A%22test%22%7D/manife
 test("Pengu is included in all three quality groups", () => {
   for (const slug of ["quality-4k", "quality-1080", "quality-low"]) {
     assert.ok(addonGroups[slug].providerIds.includes("pengu"));
-    assert.equal(addonManifests[slug].version, "3.0.15");
+    assert.equal(addonManifests[slug].version, "3.0.18");
   }
 });
 
@@ -51,6 +51,8 @@ test("Pengu requests movies and episodes and discards non-playable rows", async 
     const normalized = normalizeStream(movie[0], { id: "pengu", name: "Pengu" }, { title: "Movie" });
     assert.equal(normalized.behaviorHints.doomProviderId, "pengu");
     assert.equal(normalized.behaviorHints.notWebReady, true);
+    assert.equal(normalized.name, "Pengu 1080p");
+    assert.equal(normalized.description, "Movie 1080p");
   } finally {
     global.fetch = previousFetch;
     if (previousUrl === undefined) delete process.env.PENGU_MANIFEST_URL;

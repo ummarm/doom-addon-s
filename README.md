@@ -330,6 +330,9 @@ they are emitted into UHD, FHD or HD.
   the existing provider remains active.
 - Provider results keep Doom-addon-S's working-and-seekable stream validation
   before results are returned to Stremio.
+- Pengu uses a dedicated quality build with higher probe concurrency so its
+  validated streams are included in the first UHD/FHD/HD response. Pengu's
+  original source labels and descriptions are preserved on Stremio cards.
 - `Umbrella M`, `Umbrella Y`, `Umbrella D`, and `Umbrella F` are separate
   installable provider-group manifests that reuse the same formatter, media
   matching, probing, sorting, cache, and upstream-synced provider files as the

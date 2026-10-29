@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon-S",
-  "version": "3.0.17",
+  "version": "3.0.18",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -525,7 +525,7 @@
       "id": "pengu",
       "name": "Pengu",
       "description": "Pengu direct streams with seek and playback validation in the UHD, FHD and HD quality groups",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "upstreamVersion": "1.4.0",
       "author": "Pengu/ummarm",
       "supportedTypes": [

@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const { manifest, addonManifests, getStreams, scopeHasProvider, parseStremioId } = require("./addon");
 const aioStreamsProvider = require("./providers/aiostreams");
+const liveSports = require("./live-sports");
 
 const PORT = Number(process.env.PORT || 7000);
 const HOST = process.env.HOST || "0.0.0.0";
@@ -63,6 +64,29 @@ function parseStreamPath(pathname) {
 function parseAddonManifestPath(pathname) {
   const match = pathname.match(/^\/addons\/([^/]+)\/manifest\.json$/);
   return match ? decodeURIComponent(match[1]) : null;
+}
+
+function parseLiveCatalogPath(pathname) {
+  const match = pathname.match(/^\/addons\/live\/catalog\/([^/]+)\/([^/]+)(?:\/([^/]+))?\.json$/);
+  if (!match) return null;
+  const extra = {};
+  for (const pair of decodeURIComponent(match[3] || "").split("&")) {
+    if (!pair) continue;
+    const separator = pair.indexOf("=");
+    const name = separator >= 0 ? pair.slice(0, separator) : pair;
+    const value = separator >= 0 ? pair.slice(separator + 1) : "";
+    extra[name] = value;
+  }
+  return {
+    type: decodeURIComponent(match[1]),
+    id: decodeURIComponent(match[2]),
+    extra
+  };
+}
+
+function parseLiveMetaPath(pathname) {
+  const match = pathname.match(/^\/addons\/live\/meta\/([^/]+)\/(.+)\.json$/);
+  return match ? { type: decodeURIComponent(match[1]), id: decodeURIComponent(match[2]) } : null;
 }
 
 function parseAioRedirectPath(pathname) {
@@ -293,6 +317,7 @@ const server = http.createServer(async (request, response) => {
           `UHD: ${url.origin}/addons/quality-4k/manifest.json`,
           `FHD: ${url.origin}/addons/quality-1080/manifest.json`,
           `HD: ${url.origin}/addons/quality-low/manifest.json`,
+          `LIVE: ${url.origin}/addons/live/manifest.json`,
           ""
         ].join("\n")
       );
@@ -320,8 +345,39 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    const liveCatalogRequest = parseLiveCatalogPath(url.pathname);
+    if (liveCatalogRequest) {
+      if (liveCatalogRequest.type !== "tv" || liveCatalogRequest.id !== "live_sports") {
+        sendJson(response, 404, { error: "Live catalog not found" });
+        return;
+      }
+      const metas = await liveSports.getCatalog(liveCatalogRequest.extra);
+      sendJson(response, 200, { metas }, 60);
+      return;
+    }
+
+    const liveMetaRequest = parseLiveMetaPath(url.pathname);
+    if (liveMetaRequest) {
+      const meta = await liveSports.getMeta(liveMetaRequest.type, liveMetaRequest.id);
+      if (!meta) {
+        sendJson(response, 404, { error: "Live metadata not found" });
+        return;
+      }
+      sendJson(response, 200, { meta }, 60);
+      return;
+    }
+
     const streamRequest = parseStreamPath(url.pathname);
     if (streamRequest) {
+      if (streamRequest.scope === "live") {
+        const streams = await liveSports.getStreams(streamRequest.type, streamRequest.id);
+        if (!streams) {
+          sendJson(response, 404, { error: "Live stream not found" });
+          return;
+        }
+        sendJson(response, 200, { streams }, 0);
+        return;
+      }
       const streams = await getStreams(streamRequest.type, streamRequest.id, {
         scope: streamRequest.scope,
         requestHeaders: request.headers

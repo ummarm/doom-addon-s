@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const liveSports = require("./live-sports");
 
 const ROOT = __dirname;
 const TMDB_API_KEY = process.env.TMDB_API_KEY || "";
@@ -148,6 +149,7 @@ const addonManifests = Object.fromEntries(
     })
   ])
 );
+addonManifests.live = liveSports.createManifest(manifest.version, manifest.logo);
 const streamCache = new Map();
 const streamInflight = new Map();
 const passthroughProviderIds = new Set(["mediafusion", "aiostreams", "torbox"]);

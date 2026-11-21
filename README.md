@@ -91,6 +91,7 @@ http://localhost:7000/addons/aiostreams/manifest.json   # Umbrella AIO
 http://localhost:7000/addons/quality-4k/manifest.json   # UHD
 http://localhost:7000/addons/quality-1080/manifest.json # FHD
 http://localhost:7000/addons/quality-low/manifest.json  # HD
+http://localhost:7000/addons/live/manifest.json         # LIVE
 ```
 
 Hosted Stremio install URLs for this separated repo are:
@@ -100,6 +101,7 @@ https://doom-addon-s.zxflix.com/manifest.json
 https://doom-addon-s.zxflix.com/addons/quality-4k/manifest.json
 https://doom-addon-s.zxflix.com/addons/quality-1080/manifest.json
 https://doom-addon-s.zxflix.com/addons/quality-low/manifest.json
+https://doom-addon-s.zxflix.com/addons/live/manifest.json
 ```
 
 You can change the port with:
@@ -198,6 +200,15 @@ quality can be detected. `HD` keeps 720p, 480p, 360p, and lower
 streams. These quality groups use all enabled providers and keep the main
 add-on rules, except AIOStreams remains pass-through before quality routing.
 
+The `LIVE` add-on exposes one Stremio-native `LIVE SPORTS` TV catalog. It
+combines the configured sports sources behind Doom LIVE IDs and returns only
+standard Stremio card and stream fields. Missing or malformed playback URLs,
+Google links, login/account pages, support entries, and rows marked `premium`,
+`subscribe`, or `upgrade` are removed. Stream results refresh after 35 minutes;
+empty results can retry after one minute, and an empty HighFly refresh keeps
+its last working list. The upstream playback URLs are passed directly to
+Stremio, so live video does not proxy through Doom-addon-S.
+
 Peachify streams are language-filtered to Hindi/English and must pass the main
 playback probe before they are returned, so expired proxy/error responses are
 removed before Stremio receives them.
@@ -228,6 +239,9 @@ The stream endpoint shape is:
 /addons/quality-4k/stream/movie/tt0111161.json
 /addons/quality-1080/stream/movie/tt0111161.json
 /addons/quality-low/stream/movie/tt0111161.json
+/addons/live/catalog/tv/live_sports.json
+/addons/live/meta/tv/<doom-live-id>.json
+/addons/live/stream/tv/<doom-live-id>.json
 ```
 
 ## Windows 11 Docker + Cloudflare Tunnel

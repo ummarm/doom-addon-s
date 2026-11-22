@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon-S",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -977,6 +977,30 @@
       "logo": "https://i.postimg.cc/9QZLkH7f/umbrella.png",
       "contentLanguage": [
         "en"
+      ]
+    },
+    {
+      "id": "cncverse",
+      "name": "CNCVerse",
+      "description": "CNCVerse Bridge streams with Doom-addon-S title matching, playable and seekable validation, quality routing, and sorting",
+      "version": "1.0.0",
+      "upstreamVersion": "2.126.8797",
+      "author": "NivinCNC",
+      "supportedTypes": [
+        "movie",
+        "tv"
+      ],
+      "filename": "providers/cncverse.js",
+      "enabled": true,
+      "formats": [
+        "mp4",
+        "mkv",
+        "m3u8"
+      ],
+      "logo": "https://raw.githubusercontent.com/NivinCNC/CNCVerse-Bridge/refs/heads/main/logo.png",
+      "contentLanguage": [
+        "en",
+        "hi"
       ]
     },
     {

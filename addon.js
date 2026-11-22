@@ -734,13 +734,14 @@ function streamRequiresProbe(stream) {
     "webstreamrmbg",
     "flix_streams_emby",
     "flix_streams_lotusvault",
-    "flix_streams_debridvault"
+    "flix_streams_debridvault",
+    "cncverse"
   ].includes(stream.behaviorHints.doomProviderId));
 }
 
 function cleanDirectPlaybackStream(stream) {
   const behaviorHints = Object.assign({}, stream.behaviorHints || {});
-  const keepNotWebReady = behaviorHints.doomProviderId === "pengu"
+  const keepNotWebReady = ["pengu", "cncverse"].includes(behaviorHints.doomProviderId)
     && !looksWebReady(stream.url);
   if (!keepNotWebReady) {
     delete behaviorHints.notWebReady;
@@ -1626,7 +1627,7 @@ function normalizeStream(rawStream, provider, mediaInfo) {
     };
   }
 
-  return {
+  const normalized = {
     name: preserveSourceCard
       ? nameWithQuality(rawStream.name || nameParts.join(" | ") || provider.name, rawStream)
       : cleanStreamName(rawStream, mediaInfo) || nameWithQuality(rawStream.name || nameParts.join(" | ") || provider.name, rawStream),
@@ -1635,6 +1636,10 @@ function normalizeStream(rawStream, provider, mediaInfo) {
     url: targetUrl,
     behaviorHints
   };
+  if (provider.id === "cncverse" && Array.isArray(rawStream.subtitles) && rawStream.subtitles.length > 0) {
+    normalized.subtitles = rawStream.subtitles;
+  }
+  return normalized;
 }
 
 function dedupeStreams(streams) {

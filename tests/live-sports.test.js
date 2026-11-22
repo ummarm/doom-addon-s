@@ -22,7 +22,7 @@ function response(payload, status = 200) {
 }
 
 test("LIVE manifest exposes one Stremio-native catalog", () => {
-  const manifest = liveSports.createManifest("3.1.0", "https://example.com/logo.png");
+  const manifest = liveSports.createManifest("3.1.1", "https://example.com/logo.png");
   assert.equal(manifest.id, "community.doomplug.s.live");
   assert.equal(manifest.name, "LIVE");
   assert.deepEqual(manifest.types, ["tv"]);

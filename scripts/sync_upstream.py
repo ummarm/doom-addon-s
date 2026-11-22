@@ -35,6 +35,7 @@ YORUIX_UPSTREAM_TREE_API = "https://api.github.com/repos/yoruix/nuvio-providers/
 YORUIX_MANIFEST_URL = "https://raw.githubusercontent.com/yoruix/nuvio-providers/refs/heads/main/manifest.json"
 FLIX_STREAMS_MANIFEST_URL = "https://flixnest.app/flix-streams/u/6p9xzp78nunz/manifest.json"
 MURPH_MANIFEST_URL = "https://badboysxs-morpheus.hf.space/manifest.json"
+CNCVERSE_MANIFEST_URL = "https://cncverse.dpdns.org/u/p_50tqp11086ff/manifest.json"
 WEBSTREAMRMBG_REPOSITORY_URL = "https://github.com/newman2x/WebStreamrMBG"
 WEBSTREAMRMBG_MANIFEST_URL = "https://87d6a6ef6b58-webstreamrmbg.baby-beamup.club/manifest.json"
 TORBOX_MANIFEST_URL = "https://aiostreams.fortheweak.cloud/stremio/0f2abcc3-6334-4dc1-8852-4f1f54ee0ede/eyJpIjoiT0xEakJYaklobC84NTJPeFlrdkNyZz09IiwiZSI6IjBlRjBuUXMwRmwrMldXbXYwYVlpODliQitlblBjUGVrN1VEd1Zsb3RBSUk9IiwidCI6ImEifQ/manifest.json"
@@ -49,6 +50,7 @@ DEFAULT_UPSTREAMS = {
         "yoruix": YORUIX_MANIFEST_URL,
         "flixnest": FLIX_STREAMS_MANIFEST_URL,
         "murph": MURPH_MANIFEST_URL,
+        "cncverse": CNCVERSE_MANIFEST_URL,
         "webstreamrmbg": WEBSTREAMRMBG_MANIFEST_URL,
         "torbox": TORBOX_MANIFEST_URL,
         "torboxBackup": TORBOX_BACKUP_MANIFEST_URL,
@@ -1526,6 +1528,7 @@ def main() -> int:
 
     flixnest_manifest_url = manifests.get("flixnest", FLIX_STREAMS_MANIFEST_URL)
     murph_manifest_url = manifests.get("murph", MURPH_MANIFEST_URL)
+    cncverse_manifest_url = manifests.get("cncverse", CNCVERSE_MANIFEST_URL)
     webstreamrmbg_manifest_url = manifests.get("webstreamrmbg", WEBSTREAMRMBG_MANIFEST_URL)
     torbox_manifest_url = manifests.get("torbox", TORBOX_MANIFEST_URL)
     pengu_reference = manifests.get("pengu", "env:PENGU_MANIFEST_URL")
@@ -1534,8 +1537,18 @@ def main() -> int:
     sync_warnings.extend(check_manifest_available("WebStreamrMBG", webstreamrmbg_manifest_url))
     sync_warnings.extend(check_manifest_available("Torbox", torbox_manifest_url))
     sync_warnings.extend(check_murph_manifest(murph_manifest_url))
+    sync_warnings.extend(check_manifest_available("CNCVerse", cncverse_manifest_url))
 
     upstream_versions: dict[str, str] = {}
+    try:
+        cncverse_manifest = fetch_json(cncverse_manifest_url)
+        cncverse_version = cncverse_manifest.get("version") if isinstance(cncverse_manifest, dict) else None
+        if isinstance(cncverse_version, str) and cncverse_version:
+            upstream_versions["cncverse"] = cncverse_version
+        else:
+            sync_warnings.append("CNCVerse manifest has no version; existing configuration was kept.")
+    except Exception:
+        sync_warnings.append("CNCVerse manifest check failed; existing configuration was kept.")
     if pengu_manifest_url:
         try:
             pengu_manifest = fetch_json(pengu_manifest_url)
@@ -1581,6 +1594,7 @@ def main() -> int:
         f"- `{flixnest_manifest_url}`",
         f"- `{UPSTREAM_DOMAINS_URL}`",
         f"- `{murph_manifest_url}`",
+        f"- `{cncverse_manifest_url}`",
         f"- `{webstreamrmbg_manifest_url}`",
         f"- `{upstreams.get('repositories', {}).get('webstreamrmbg', WEBSTREAMRMBG_REPOSITORY_URL)}`",
         f"- `{torbox_manifest_url}`",

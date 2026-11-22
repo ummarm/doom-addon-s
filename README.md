@@ -166,6 +166,16 @@ not already covered by a named wrapper.
 D3adlyRocket direct providers include the enabled upstream set from the checked
 manifest, including CineFreak, FibWatch, and PlayIMDb.
 
+CNCVerse uses its configured Stremio manifest as an original source. Donation
+and external-only rows are discarded; movie and episode links then pass through
+the same Doom title matching, quality routing, direct playback, seek validation,
+deduplication, and sorting as regular providers. Its manifest can be replaced
+without changing code:
+
+```sh
+CNCVERSE_MANIFEST_URL=https://example.com/config/manifest.json npm start
+```
+
 MediaFusion uses the configured MediaFusion manifest URL. The checked-in default
 can be overridden if the configured add-on URL changes:
 
@@ -317,8 +327,9 @@ they are emitted into UHD, FHD or HD.
 - Provider files sync directly from the original upstream sources:
   `https://raw.githubusercontent.com/D3adlyRocket/All-in-One-Nuvio/refs/heads/main/manifest.json`,
   `https://raw.githubusercontent.com/yoruix/nuvio-providers/refs/heads/main/manifest.json`,
-  `https://flixnest.app/flix-streams/u/6p9xzp78nunz/manifest.json`, and
-  `https://badboysxs-morpheus.hf.space/manifest.json`.
+  `https://flixnest.app/flix-streams/u/6p9xzp78nunz/manifest.json`,
+  `https://badboysxs-morpheus.hf.space/manifest.json`, and
+  `https://cncverse.dpdns.org/u/p_50tqp11086ff/manifest.json`.
 - If you keep redistributing these files, keep the original license terms and
   attribution in mind.
 - `4KHDHub`, `4khdhub-tv`, and `HDHub4u` read domain data from this repo's
@@ -344,6 +355,9 @@ they are emitted into UHD, FHD or HD.
   the existing provider remains active.
 - Provider results keep Doom-addon-S's working-and-seekable stream validation
   before results are returned to Stremio.
+- `CNCVerse` is enabled in Main, UHD, FHD, and HD. Its upstream manifest version
+  is checked by the daily original-source sync, while its returned links are
+  validated on demand and retain Stremio MKV and subtitle hints.
 - Pengu uses a dedicated quality build with higher probe concurrency so its
   validated streams are included in the first UHD/FHD/HD response. Pengu's
   original source labels and descriptions are preserved on Stremio cards, and

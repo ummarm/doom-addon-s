@@ -1,6 +1,6 @@
 {
   "name": "Doom-addon-S",
-  "version": "3.1.3",
+  "version": "3.1.4",
   "scrapers": [
     {
       "id": "4khdhub",
@@ -983,8 +983,8 @@
       "id": "cncverse",
       "name": "CNCVerse",
       "description": "CNCVerse Bridge streams with Doom-addon-S title matching, playable and seekable validation, quality routing, and sorting",
-      "version": "1.0.2",
-      "upstreamVersion": "2.130.8797",
+      "version": "1.0.3",
+      "upstreamVersion": "2.130.8798",
       "author": "NivinCNC",
       "supportedTypes": [
         "movie",
